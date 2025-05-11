@@ -8,9 +8,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from postgres_mcp.core.exceptions import QueryError
 from postgres_mcp.models.filters import (
     ArrayFilter, ComparisonFilter, FilterOperator, FiltersType,
-    JsonbFilter, ListFilter, NullFilter, TextFilter
+    GeometricFilter, JsonbFilter, ListFilter, NullFilter, TextFilter
 )
-from postgres_mcp.utils.pg_types import PostgresTypeConverter, prepare_array, prepare_jsonb
+from postgres_mcp.utils.pg_types import (
+    PostgresTypeConverter, prepare_array, prepare_box_from_string,
+    prepare_jsonb, prepare_point_from_string, prepare_polygon_from_string
+)
 
 
 class QueryBuilder:
@@ -552,6 +555,137 @@ class QueryBuilder:
             else:
                 param_name = self.add_param(value)
                 return f"{quoted_key} @@ :{param_name}::jsonpath"
+        
+        # Operadores para tipos geométricos
+        elif op == FilterOperator.DISTANCE:
+            # Distância entre pontos
+            try:
+                # Verificar se é um valor numérico direto ou uma string
+                if isinstance(value, (int, float)):
+                    param_name = self.add_param(value)
+                    return f"ST_Distance({quoted_key}, ST_MakePoint(0, 0)) = :{param_name}"
+                else:
+                    # Espera-se um formato como "ponto:(x,y),distância:d"
+                    parts = value.split(",")
+                    if len(parts) == 2 and parts[0].startswith("(") and parts[0].endswith(")"):
+                        point = parts[0]
+                        distance = float(parts[1])
+                        point_param = self.add_param(prepare_point_from_string(point))
+                        distance_param = self.add_param(distance)
+                        return f"ST_Distance({quoted_key}, {point_param}::point) = :{distance_param}"
+                    else:
+                        # Adicionar apenas o parâmetro original para evitar erro na consulta
+                        param_name = self.add_param(value)
+                        return f"ST_Distance({quoted_key}, :{param_name}::point) = 0"
+            except Exception as e:
+                # Em caso de erro, retornar condição sempre falsa
+                return "FALSE"
+        
+        elif op == FilterOperator.NEAR:
+            # Ponto próximo (dentro de determinada distância)
+            try:
+                # Verificar o formato correto: "(x,y)" ou "(x,y),distância"
+                if isinstance(value, str):
+                    parts = value.split(",")
+                    # Extrair ponto e distância
+                    if len(parts) >= 2 and parts[0].startswith("(") and ")" in value:
+                        # Encontrar o índice do fechamento do parêntese
+                        close_paren_idx = value.find(")")
+                        point_str = value[:close_paren_idx + 1]
+                        
+                        # Extrair a distância, padrão 1.0 se não especificada
+                        try:
+                            distance = float(value[close_paren_idx + 2:])
+                        except (ValueError, IndexError):
+                            distance = 1.0
+                            
+                        point_param = self.add_param(prepare_point_from_string(point_str))
+                        distance_param = self.add_param(distance)
+                        return f"ST_DWithin({quoted_key}, {point_param}::point, :{distance_param})"
+                    else:
+                        # Formato simples "(x,y)" sem distância especificada
+                        point_param = self.add_param(prepare_point_from_string(value))
+                        return f"ST_DWithin({quoted_key}, {point_param}::point, 1.0)"
+                else:
+                    # Valor inesperado, retornar condição sempre falsa
+                    return "FALSE"
+            except Exception as e:
+                # Em caso de erro, retornar condição sempre falsa
+                return "FALSE"
+        
+        elif op == FilterOperator.CONTAINS_POINT:
+            # Polígono contém ponto
+            try:
+                if isinstance(value, str) and value.startswith("(") and value.endswith(")"):
+                    point_param = self.add_param(prepare_point_from_string(value))
+                    return f"ST_Contains({quoted_key}, {point_param}::point)"
+                else:
+                    # Valor inesperado, retornar condição sempre falsa
+                    return "FALSE"
+            except Exception as e:
+                # Em caso de erro, retornar condição sempre falsa
+                return "FALSE"
+        
+        elif op == FilterOperator.WITHIN:
+            # Ponto/objeto está dentro de outro
+            try:
+                if isinstance(value, str):
+                    if value.startswith("((") and value.endswith("))"):
+                        # É uma box
+                        box_param = self.add_param(prepare_box_from_string(value))
+                        return f"ST_Within({quoted_key}, {box_param}::box)"
+                    elif value.startswith("(") and value.endswith(")") and value.count("(") >= 3:
+                        # É um polígono
+                        polygon_param = self.add_param(prepare_polygon_from_string(value))
+                        return f"ST_Within({quoted_key}, {polygon_param}::polygon)"
+                    else:
+                        # Formato desconhecido, retornar condição sempre falsa
+                        return "FALSE"
+                else:
+                    # Valor inesperado, retornar condição sempre falsa
+                    return "FALSE"
+            except Exception as e:
+                # Em caso de erro, retornar condição sempre falsa
+                return "FALSE"
+        
+        elif op == FilterOperator.INTERSECTS:
+            # Objetos se interceptam
+            try:
+                if isinstance(value, str):
+                    if value.startswith("((") and value.endswith("))"):
+                        # É uma box
+                        box_param = self.add_param(prepare_box_from_string(value))
+                        return f"ST_Intersects({quoted_key}, {box_param}::box)"
+                    elif value.startswith("(") and value.endswith(")") and value.count("(") >= 3:
+                        # É um polígono
+                        polygon_param = self.add_param(prepare_polygon_from_string(value))
+                        return f"ST_Intersects({quoted_key}, {polygon_param}::polygon)"
+                    elif value.startswith("(") and value.endswith(")") and value.count(",") == 1:
+                        # É um ponto
+                        point_param = self.add_param(prepare_point_from_string(value))
+                        return f"ST_Intersects({quoted_key}, {point_param}::point)"
+                    else:
+                        # Formato desconhecido, retornar condição sempre falsa
+                        return "FALSE"
+                else:
+                    # Valor inesperado, retornar condição sempre falsa
+                    return "FALSE"
+            except Exception as e:
+                # Em caso de erro, retornar condição sempre falsa
+                return "FALSE"
+        
+        elif op == FilterOperator.BOUNDING_BOX:
+            # Dentro da caixa delimitadora
+            try:
+                if isinstance(value, str) and value.startswith("((") and value.endswith("))"):
+                    box_param = self.add_param(prepare_box_from_string(value))
+                    return f"{quoted_key} <@ {box_param}::box"
+                else:
+                    # Valor inesperado, retornar condição sempre falsa
+                    return "FALSE"
+            except Exception as e:
+                # Em caso de erro, retornar condição sempre falsa
+                return "FALSE"
         
         return ""
     

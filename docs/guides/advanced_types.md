@@ -135,9 +135,37 @@ Você pode acessar campos aninhados em objetos JSON/JSONB usando notação de po
 
 ## Tipos Geométricos
 
-O PostgreSQL também oferece suporte a tipos geométricos como `point`, `line`, `circle` e `polygon`. O PostgreSQL MCP permite trabalhar com estes tipos para aplicações que exigem funcionalidades geoespaciais.
+O PostgreSQL oferece suporte nativo a tipos geométricos como `point`, `line`, `circle`, `polygon` e `box`. O PostgreSQL MCP agora possui suporte completo para trabalhar com estes tipos, permitindo operações espaciais avançadas em suas aplicações.
+
+### Operadores Geométricos Suportados
+
+O PostgreSQL MCP suporta os seguintes operadores para campos de tipos geométricos:
+
+| Operador | Descrição | Exemplo de Uso |
+|----------|-----------|----------------|
+| `distance` | Calcula a distância entre pontos | `"localizacao": {"distance": "(0,0),5.5"}` |
+| `near` | Encontra pontos próximos a uma coordenada | `"localizacao": {"near": "(37.7749,-122.4194),1.5"}` |
+| `contains_point` | Verifica se um polígono contém um ponto | `"area": {"contains_point": "(5,5)"}` |
+| `within` | Verifica se um objeto está dentro de outro | `"ponto": {"within": "((0,0),(10,10))"}` |
+| `intersects` | Verifica se objetos geométricos se interceptam | `"rota": {"intersects": "((0,0),(10,0),(5,5))"}` |
+| `bounding_box` | Verifica se está dentro de uma caixa delimitadora | `"localizacao": {"bounding_box": "((0,0),(10,10))"}` |
+
+### Formatos de Dados Geométricos
+
+Para usar tipos geométricos, você precisa fornecer dados no formato correto:
+
+1. **Pontos**: Coordenadas X e Y entre parênteses: `(x,y)`
+   - Exemplo: `(37.7749,-122.4194)`
+
+2. **Caixas (Box)**: Dois pontos que definem os cantos opostos: `((x1,y1),(x2,y2))`
+   - Exemplo: `((0,0),(10,10))`
+
+3. **Polígonos**: Sequência de pontos que definem o polígono: `((x1,y1),(x2,y2),...,(xn,yn))`
+   - Exemplo: `((0,0),(0,10),(10,10),(10,0),(0,0))`
 
 ### Exemplos de Consultas com Tipos Geométricos
+
+#### Encontrar locais próximos a um ponto
 
 ```json
 {
@@ -145,14 +173,69 @@ O PostgreSQL também oferece suporte a tipos geométricos como `point`, `line`, 
   "parameters": {
     "table": "locais",
     "filters": {
-      "localizacao": {
-        "near": "(37.7749,-122.4194)",
-        "distance": 10
+      "coordenadas": {
+        "near": "(37.7749,-122.4194),2.5"
       }
     }
   }
 }
 ```
+
+Neste exemplo, estamos buscando locais cujas coordenadas estão a uma distância máxima de 2.5 unidades do ponto (37.7749,-122.4194).
+
+#### Calcular a distância entre pontos
+
+```json
+{
+  "tool": "read_table",
+  "parameters": {
+    "table": "locais",
+    "filters": {
+      "coordenadas": {
+        "distance": "(0,0),5.0"
+      }
+    }
+  }
+}
+```
+
+Este exemplo encontra locais que estão exatamente a 5.0 unidades de distância do ponto (0,0).
+
+#### Verificar se um ponto está dentro de uma área
+
+```json
+{
+  "tool": "read_table",
+  "parameters": {
+    "table": "pontos_interesse",
+    "filters": {
+      "coordenada": {
+        "within": "((0,0),(0,10),(10,10),(10,0),(0,0))"
+      }
+    }
+  }
+}
+```
+
+Este exemplo busca pontos de interesse cuja coordenada está dentro do polígono especificado.
+
+#### Verificar interseção entre áreas
+
+```json
+{
+  "tool": "read_table",
+  "parameters": {
+    "table": "areas",
+    "filters": {
+      "poligono": {
+        "intersects": "((5,5),(15,5),(10,15),(5,5))"
+      }
+    }
+  }
+}
+```
+
+Neste exemplo, buscamos áreas cujo polígono intercepta o polígono triangular especificado.
 
 ### Criando Registros com Tipos Geométricos
 
@@ -163,12 +246,27 @@ O PostgreSQL também oferece suporte a tipos geométricos como `point`, `line`, 
     "table": "locais",
     "data": {
       "nome": "Parque Central",
-      "localizacao": "(37.7749,-122.4194)",
-      "area": "((0,0),(0,10),(10,10),(10,0),(0,0))"
+      "coordenadas": "(37.7749,-122.4194)",
+      "area_cobertura": "((37.7749,-122.4194),(37.7749,-122.4094),(37.7849,-122.4094),(37.7849,-122.4194),(37.7749,-122.4194))",
+      "regiao_limite": "((37.77,-122.42),(37.78,-122.40))"
     }
   }
 }
 ```
+
+### Índices para Tipos Geométricos
+
+Para otimizar consultas com tipos geométricos, você pode criar índices especializados:
+
+```sql
+-- Índice GiST para ponto
+CREATE INDEX idx_coordenadas ON locais USING GIST (coordenadas);
+
+-- Índice GiST para polígono
+CREATE INDEX idx_area ON locais USING GIST (area);
+```
+
+Os índices GiST (Generalized Search Tree) são especialmente eficientes para tipos geométricos no PostgreSQL.
 
 ## Melhores Práticas
 

@@ -348,6 +348,185 @@ users_with_email = client.read_table(
 )
 ```
 
+## Exemplos de Tipos Geométricos
+
+Os exemplos a seguir demonstram como utilizar tipos geométricos do PostgreSQL através do PostgreSQL MCP.
+
+### Exemplo 1: Buscar Restaurantes Próximos
+
+```python
+import asyncio
+import json
+from postgres_mcp.client import PostgresMCPClient
+
+async def find_nearby_restaurants():
+    # Inicializar o cliente
+    client = PostgresMCPClient(url="http://localhost:8000")
+    
+    # Coordenadas do usuário
+    user_location = "(37.7749,-122.4194)"  # San Francisco
+    max_distance = 2.0  # km
+    
+    # Buscar restaurantes próximos
+    response = await client.run_tool(
+        tool="read_table",
+        parameters={
+            "table": "restaurants",
+            "filters": {
+                "location": {
+                    "near": f"{user_location},{max_distance}"
+                }
+            },
+            "columns": ["id", "name", "cuisine", "rating"],
+            "limit": 10
+        }
+    )
+    
+    # Processar resultados
+    restaurants = json.loads(response)["results"]
+    print(f"Encontrados {len(restaurants)} restaurantes próximos:")
+    
+    for restaurant in restaurants:
+        print(f"- {restaurant['name']} ({restaurant['cuisine']}) - {restaurant['rating']}/5 estrelas")
+    
+    return restaurants
+
+# Executar a função
+asyncio.run(find_nearby_restaurants())
+```
+
+### Exemplo 2: Verificar Imóveis em Área de Interesse
+
+```python
+import asyncio
+import json
+from postgres_mcp.client import PostgresMCPClient
+
+async def find_properties_in_area():
+    # Inicializar o cliente
+    client = PostgresMCPClient(url="http://localhost:8000")
+    
+    # Definir polígono da área de interesse
+    # Formato: ((x1,y1),(x2,y2),...,(xn,yn))
+    area_of_interest = "((37.78,-122.42),(37.78,-122.40),(37.76,-122.40),(37.76,-122.42),(37.78,-122.42))"
+    
+    # Buscar imóveis dentro da área
+    response = await client.run_tool(
+        tool="read_table",
+        parameters={
+            "table": "properties",
+            "filters": {
+                "location": {
+                    "within": area_of_interest
+                },
+                "price": {
+                    "lte": 1000000
+                },
+                "bedrooms": {
+                    "gte": 2
+                }
+            },
+            "columns": ["id", "address", "price", "bedrooms", "bathrooms"],
+            "order_by": "price",
+            "ascending": True
+        }
+    )
+    
+    # Processar resultados
+    properties = json.loads(response)["results"]
+    print(f"Encontrados {len(properties)} imóveis na área de interesse:")
+    
+    for property in properties:
+        print(f"- {property['address']}: ${property['price']:,} - {property['bedrooms']} quartos, {property['bathrooms']} banheiros")
+    
+    return properties
+
+# Executar a função
+asyncio.run(find_properties_in_area())
+```
+
+### Exemplo 3: Verificar Sobreposição de Rotas
+
+```python
+import asyncio
+import json
+from postgres_mcp.client import PostgresMCPClient
+
+async def find_intersecting_routes():
+    # Inicializar o cliente
+    client = PostgresMCPClient(url="http://localhost:8000")
+    
+    # Definir uma rota de referência (polígono representando um corredor)
+    reference_route = "((37.78,-122.42),(37.78,-122.40),(37.775,-122.40),(37.775,-122.42),(37.78,-122.42))"
+    
+    # Buscar rotas que se cruzam com a rota de referência
+    response = await client.run_tool(
+        tool="read_table",
+        parameters={
+            "table": "routes",
+            "filters": {
+                "path": {
+                    "intersects": reference_route
+                },
+                "is_active": True
+            },
+            "columns": ["id", "name", "type", "distance"]
+        }
+    )
+    
+    # Processar resultados
+    routes = json.loads(response)["results"]
+    print(f"Encontradas {len(routes)} rotas que cruzam a rota de referência:")
+    
+    for route in routes:
+        print(f"- {route['name']} ({route['type']}): {route['distance']} km")
+    
+    return routes
+
+# Executar a função
+asyncio.run(find_intersecting_routes())
+```
+
+### Exemplo 4: Criando Dados com Tipos Geométricos
+
+```python
+import asyncio
+import json
+from postgres_mcp.client import PostgresMCPClient
+
+async def create_park_data():
+    # Inicializar o cliente
+    client = PostgresMCPClient(url="http://localhost:8000")
+    
+    # Criar um novo parque com dados geométricos
+    response = await client.run_tool(
+        tool="create_record",
+        parameters={
+            "table": "parks",
+            "data": {
+                "name": "Golden Gate Park",
+                "center_point": "(37.7694,-122.4862)",  # Ponto central
+                "boundary": "((37.7759,-122.5108),(37.7759,-122.4577),(37.7629,-122.4577),(37.7629,-122.5108),(37.7759,-122.5108))",  # Perímetro aproximado
+                "area_sqkm": 4.1,
+                "has_playground": True,
+                "has_dogpark": True
+            }
+        }
+    )
+    
+    # Verificar resposta
+    result = json.loads(response)
+    if "error" in result:
+        print(f"Erro ao criar parque: {result['error']}")
+    else:
+        print(f"Parque criado com sucesso! ID: {result.get('id')}")
+    
+    return result
+
+# Executar a função
+asyncio.run(create_park_data())
+```
+
 ## Exemplos de Implementação
 
 ### 1. Criando um Novo Handler

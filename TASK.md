@@ -93,7 +93,7 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [x] Desenvolver filtros para tipos específicos do PostgreSQL:
   - [x] Arrays
   - [x] JSON/JSONB
-  - [ ] Tipos geométricos
+  - [x] Tipos geométricos
 
 ### Funcionalidades PostgreSQL Avançadas
 - [x] Implementar suporte a múltiplos schemas
