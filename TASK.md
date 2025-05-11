@@ -90,14 +90,14 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [x] Criar suporte para filtros de texto (like, ilike, regex)
 - [x] Implementar filtros para listas (in, not in)
 - [x] Adicionar suporte a operadores para valores nulos
-- [ ] Desenvolver filtros para tipos específicos do PostgreSQL:
-  - [ ] Arrays
-  - [ ] JSON/JSONB
+- [x] Desenvolver filtros para tipos específicos do PostgreSQL:
+  - [x] Arrays
+  - [x] JSON/JSONB
   - [ ] Tipos geométricos
 
 ### Funcionalidades PostgreSQL Avançadas
 - [x] Implementar suporte a múltiplos schemas
-- [ ] Adicionar suporte a tipos de dados avançados
+- [x] Adicionar suporte a tipos de dados avançados
 - [ ] Criar funcionalidades para trabalhar com views
 - [ ] Implementar suporte a funções e procedimentos armazenados
 - [ ] Adicionar suporte a CTEs e Window Functions
@@ -105,7 +105,7 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 ## 🧪 Fase 6: Testes
 
 ### Testes Unitários
-- [ ] Implementar testes para a camada de repositório
+- [x] Implementar testes para a camada de repositório
 - [ ] Criar testes para a camada de serviços
 - [ ] Desenvolver testes para handlers MCP
 - [ ] Implementar testes para o sistema de filtros
@@ -195,4 +195,4 @@ Para cada tarefa acima, seguir este processo:
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
 - **Fase atual**: Fase 5 - Implementação de Funcionalidades Avançadas (Em progresso)
-- **Progresso geral**: 80% 
+- **Progresso geral**: 85% 

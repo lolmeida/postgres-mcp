@@ -6,10 +6,11 @@ import asyncio
 import json
 import logging
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import asyncpg
 from asyncpg import Connection, Pool
+from asyncpg.transaction import Transaction
 
 from postgres_mcp.core.config import PostgresMCPConfig, SSLMode
 from postgres_mcp.core.exceptions import (
@@ -19,6 +20,9 @@ from postgres_mcp.core.logging import SQLLogger
 from postgres_mcp.models.filters import FiltersType
 from postgres_mcp.repository.base import BaseRepository
 from postgres_mcp.repository.query_builder import QueryBuilder
+from postgres_mcp.utils.pg_types import PostgresTypeConverter
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresRepository(BaseRepository):
@@ -39,7 +43,7 @@ class PostgresRepository(BaseRepository):
         self.pool: Optional[Pool] = None
         self.sql_logger = SQLLogger(logger, config.log_sql_queries)
         self.query_builder = QueryBuilder()
-        self._transactions: Dict[str, Connection] = {}
+        self._transactions: Dict[str, Transaction] = {}
     
     async def initialize(self) -> None:
         """
@@ -81,6 +85,10 @@ class PostgresRepository(BaseRepository):
                 command_timeout=self.config.command_timeout,
                 ssl=ssl,
             )
+            
+            # Registra manipuladores de tipos personalizados
+            if self.pool:
+                PostgresTypeConverter.register_type_handlers(self.pool)
             
             self.logger.info("Conexão com PostgreSQL estabelecida com sucesso")
             
@@ -948,3 +956,94 @@ class PostgresRepository(BaseRepository):
                 "max_size": self.config.pool_max_size,
                 "active_transactions": len(self._transactions)
             }
+
+    async def get_table_structure(self, table: str, schema: str = "public") -> List[Dict[str, Any]]:
+        """
+        Obtém a estrutura de uma tabela.
+        
+        Args:
+            table: Nome da tabela
+            schema: Schema da tabela (padrão: 'public')
+            
+        Returns:
+            Lista de colunas com seus tipos e outras propriedades
+            
+        Raises:
+            DatabaseError: Se ocorrer um erro ao obter a estrutura
+        """
+        query = """
+        SELECT 
+            c.column_name, 
+            c.data_type, 
+            c.is_nullable::boolean,
+            c.column_default,
+            CASE 
+                WHEN c.data_type = 'ARRAY' THEN c.udt_name
+                WHEN c.data_type = 'USER-DEFINED' THEN c.udt_name
+                ELSE NULL
+            END AS array_type,
+            CASE 
+                WHEN c.data_type = 'character varying' THEN c.character_maximum_length
+                WHEN c.data_type = 'character' THEN c.character_maximum_length
+                WHEN c.data_type = 'numeric' THEN c.numeric_precision
+                ELSE NULL
+            END AS max_length,
+            pk.is_primary_key
+        FROM 
+            information_schema.columns c
+        LEFT JOIN (
+            SELECT 
+                kcu.column_name,
+                TRUE as is_primary_key
+            FROM 
+                information_schema.key_column_usage kcu
+            JOIN 
+                information_schema.table_constraints tc
+            ON 
+                kcu.constraint_name = tc.constraint_name
+            WHERE 
+                tc.constraint_type = 'PRIMARY KEY' AND
+                kcu.table_schema = $1 AND
+                kcu.table_name = $2
+        ) pk ON c.column_name = pk.column_name
+        WHERE 
+            c.table_schema = $1 AND
+            c.table_name = $2
+        ORDER BY 
+            c.ordinal_position
+        """
+        try:
+            async with self._get_connection() as conn:
+                rows = await conn.fetch(query, schema, table)
+                
+                result = []
+                for row in rows:
+                    # Converter asyncpg.Record para dicionário
+                    column_info = dict(row)
+                    
+                    # Adicionar informações extras para tipos específicos
+                    data_type = column_info["data_type"].lower()
+                    
+                    # Processar tipos de array
+                    if data_type == "array":
+                        array_type = column_info.get("array_type")
+                        if array_type and array_type.startswith("_"):
+                            # Extrair o tipo base do array (remove o underscore inicial)
+                            base_type = array_type[1:]
+                            column_info["array_element_type"] = base_type
+                    
+                    # Processar tipos JSON/JSONB
+                    elif data_type in ("json", "jsonb"):
+                        column_info["is_json"] = True
+                    
+                    # Processar tipos geométricos
+                    elif data_type in ("point", "line", "circle", "polygon"):
+                        column_info["is_geometric"] = True
+                    
+                    result.append(column_info)
+                
+                return result
+                
+        except asyncpg.PostgresError as e:
+            logger.error(f"Erro ao obter estrutura da tabela {schema}.{table}: {str(e)}")
+            raise DatabaseError(f"Falha ao obter estrutura da tabela: {str(e)}")

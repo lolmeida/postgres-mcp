@@ -10,6 +10,7 @@ from postgres_mcp.models.filters import (
     ArrayFilter, ComparisonFilter, FilterOperator, FiltersType,
     JsonbFilter, ListFilter, NullFilter, TextFilter
 )
+from postgres_mcp.utils.pg_types import PostgresTypeConverter, prepare_array, prepare_jsonb
 
 
 class QueryBuilder:
@@ -477,16 +478,20 @@ class QueryBuilder:
         
         # Operadores para arrays
         elif op == FilterOperator.CONTAINS:
-            param_name = self.add_param(value)
-            return f"{quoted_key} @> ARRAY[:{param_name}]"
+            # Melhorar o suporte a arrays para lidar com diferentes tipos de elementos
+            array_value = prepare_array(value) if isinstance(value, list) else value
+            param_name = self.add_param(array_value)
+            return f"{quoted_key} @> :{param_name}"
         
         elif op == FilterOperator.CONTAINED_BY:
-            param_name = self.add_param(value)
-            return f"{quoted_key} <@ ARRAY[:{param_name}]"
+            array_value = prepare_array(value) if isinstance(value, list) else value
+            param_name = self.add_param(array_value)
+            return f"{quoted_key} <@ :{param_name}"
         
         elif op == FilterOperator.OVERLAP:
-            param_name = self.add_param(value)
-            return f"{quoted_key} && ARRAY[:{param_name}]"
+            array_value = prepare_array(value) if isinstance(value, list) else value
+            param_name = self.add_param(array_value)
+            return f"{quoted_key} && :{param_name}"
         
         elif op == FilterOperator.ARRAY_LENGTH:
             param_name = self.add_param(value)
@@ -502,28 +507,51 @@ class QueryBuilder:
         
         # Operadores para JSON/JSONB
         elif op == FilterOperator.JSONB_CONTAINS:
-            param_name = self.add_param(json.dumps(value))
-            return f"{quoted_key} @> :{param_name}::jsonb"
+            # Converter valor para string JSON formatada corretamente
+            if isinstance(value, (dict, list)):
+                jsonb_value = prepare_jsonb(value)
+                param_name = self.add_param(jsonb_value)
+                return f"{quoted_key} @> :{param_name}::jsonb"
+            else:
+                param_name = self.add_param(value)
+                return f"{quoted_key} @> :{param_name}::jsonb"
         
         elif op == FilterOperator.JSONB_CONTAINED_BY:
-            param_name = self.add_param(json.dumps(value))
-            return f"{quoted_key} <@ :{param_name}::jsonb"
+            if isinstance(value, (dict, list)):
+                jsonb_value = prepare_jsonb(value)
+                param_name = self.add_param(jsonb_value)
+                return f"{quoted_key} <@ :{param_name}::jsonb"
+            else:
+                param_name = self.add_param(value)
+                return f"{quoted_key} <@ :{param_name}::jsonb"
         
         elif op == FilterOperator.HAS_KEY:
             param_name = self.add_param(value)
             return f"{quoted_key} ? :{param_name}"
         
         elif op == FilterOperator.HAS_ANY_KEYS:
+            # Garantir que value é uma lista de chaves
+            if not isinstance(value, list):
+                value = [value]
             param_name = self.add_param(value)
             return f"{quoted_key} ?| :{param_name}"
         
         elif op == FilterOperator.HAS_ALL_KEYS:
+            # Garantir que value é uma lista de chaves
+            if not isinstance(value, list):
+                value = [value]
             param_name = self.add_param(value)
             return f"{quoted_key} ?& :{param_name}"
         
         elif op == FilterOperator.JSONB_PATH:
-            param_name = self.add_param(value)
-            return f"{quoted_key} @@ :{param_name}"
+            # Verificar se é uma string ou um objeto de caminho JSONB
+            if isinstance(value, dict):
+                jsonb_path = prepare_jsonb(value)
+                param_name = self.add_param(jsonb_path)
+                return f"{quoted_key} @@ :{param_name}::jsonpath"
+            else:
+                param_name = self.add_param(value)
+                return f"{quoted_key} @@ :{param_name}::jsonpath"
         
         return ""
     
