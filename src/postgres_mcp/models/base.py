@@ -149,6 +149,25 @@ class ViewInfo(BaseModel):
     depends_on: List[str] = Field(default_factory=list, description="Tabelas/views das quais esta view depende")
 
 
+class FunctionInfo(BaseModel):
+    """Informações de uma função ou procedimento PostgreSQL."""
+    
+    name: str = Field(..., description="Nome da função")
+    schema: str = Field("public", description="Schema da função")
+    return_type: str = Field(..., description="Tipo de retorno da função")
+    definition: str = Field(..., description="Definição SQL da função")
+    language: str = Field(..., description="Linguagem da função")
+    argument_types: List[str] = Field(default_factory=list, description="Tipos dos argumentos")
+    argument_names: List[str] = Field(default_factory=list, description="Nomes dos argumentos")
+    argument_defaults: List[Optional[str]] = Field(default_factory=list, description="Valores padrão dos argumentos")
+    is_procedure: bool = Field(False, description="Se é um procedimento")
+    is_aggregate: bool = Field(False, description="Se é uma função de agregação")
+    is_window: bool = Field(False, description="Se é uma função de janela")
+    is_security_definer: bool = Field(False, description="Se é executada com permissões do criador")
+    volatility: str = Field("volatile", description="Volatilidade da função (volatile, stable, immutable)")
+    comment: Optional[str] = Field(None, description="Comentário da função, se houver")
+
+
 class SchemaInfo(BaseModel):
     """Informações de um schema PostgreSQL."""
     
