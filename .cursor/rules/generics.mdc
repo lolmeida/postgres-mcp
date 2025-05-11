@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Checklist de Tarefas
+Este documento contém a lista completa de tarefas a serem realizadas até a conclusão dos projetos. Cada tarefa deve seguir o processo de desenvolvimento especificado abaixo.
+Processo de Desenvolvimento (Aplicável a todas as tarefas)
+✅ Criar uma nova branch a partir da main para cada tarefa ou feature
+✅ Implementar a funcionalidade conforme especificado
+✅ Garantir que o código está rodando sem erros
+✅ Executar e verificar se os testes estão passando (quando aplicável)
+✅ Fazer commit das alterações com mensagens claras e descritivas
+✅ Verificar se o código segue as diretrizes de codificação do projeto
+✅ Criar um Pull Request para a branch main
+✅ Aguardar revisão e aprovação antes de fazer o merge
