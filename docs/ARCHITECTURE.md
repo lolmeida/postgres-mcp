@@ -339,3 +339,58 @@ O MetricsService é integrado com outros componentes do sistema através de inje
    - Logging estruturado de todas as operações
    - Sem dados sensíveis em logs
    - Integração opcional com funcionalidades de auditoria do PostgreSQL
+
+## Testes
+
+A estratégia de testes do PostgreSQL MCP é abrangente, cobrindo múltiplos níveis:
+
+### Testes Unitários
+
+* **Testes de Serviços**: Verificam a lógica de negócio isoladamente
+* **Testes de Handlers**: Verificam o processamento de requisições
+* **Testes de Modelos**: Asseguram a correta validação e comportamento dos modelos de dados
+* **Testes de Filtros**: Validam a conversão correta dos modelos de filtro para SQL
+* **Testes do QueryBuilder**: Verificam a geração adequada de consultas SQL com filtros complexos
+
+### Testes Independentes
+
+Um conjunto de testes standalone foi implementado no diretório `standalone_tests/` para testar componentes críticos de forma independente:
+
+* **test_standalone_filters.py**: Testes abrangentes para todos os modelos de filtro
+* **test_standalone_query_builder.py**: Testes para o QueryBuilder com filtros simples
+* **test_integrated.py**: Testes integrados para verificar a interação entre filtros e QueryBuilder
+
+Esses testes validam:
+* A correta implementação de todos os tipos de filtro
+* A construção adequada de consultas SQL com filtros variados
+* O tratamento de palavras-chave reservadas como 'in' e 'is'
+* O suporte a múltiplos operadores para o mesmo campo
+
+### Testes de Integração (Planejados)
+
+* **Testes com PostgreSQL Real**: Usando Testcontainers para criar bancos de teste
+* **Testes End-to-End**: Simulando o fluxo completo de requisições MCP
+
+### Ambiente de Testes
+
+* **Banco de Dados de Teste**: PostgreSQL em contêiner Docker
+* **Fixtures de Teste**: Dados pré-definidos para testes consistentes
+* **Mocks e Stubs**: Para componentes externos e serviços dependentes
+
+## Extensibilidade
+
+A arquitetura do PostgreSQL MCP foi projetada para ser extensível:
+
+* **Handlers Plugáveis**: Novos handlers podem ser adicionados facilmente
+* **Serviços Modulares**: Serviços podem ser estendidos ou substituídos
+* **Filtros Customizáveis**: O sistema de filtros pode ser estendido para novos tipos ou operadores
+* **Transporte Flexível**: Novos modos de transporte podem ser adicionados (gRPC, WebSockets, etc.)
+
+## Configuração e Deployment
+
+O PostgreSQL MCP suporta várias opções de configuração e deployment:
+
+* **Variáveis de Ambiente**: Configuração via variáveis de ambiente
+* **Arquivo de Configuração**: Configuração via arquivo JSON/YAML
+* **Programática**: Configuração via API
+* **Deployment**: Suporte para deployment como serviço standalone, Docker, ou função serverless

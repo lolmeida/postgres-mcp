@@ -127,8 +127,8 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
   - [x] Testes para handlers de views
   - [x] Testes para handlers de cache
   - [x] Testes para handlers de transações
-- [ ] Implementar testes para o sistema de filtros
-- [ ] Criar testes de serialização/deserialização MCP
+- [x] Implementar testes para o sistema de filtros
+- [x] Criar testes de serialização/deserialização MCP
 
 ### Testes de Integração
 - [ ] Configurar ambiente de teste com Testcontainers

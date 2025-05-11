@@ -26,8 +26,15 @@ O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - Funções e Procedimentos:
   - Listagem, descrição, criação, execução e exclusão
 
+Testes implementados:
+- Testes unitários para serviços e handlers
+- Testes abrangentes para o sistema de filtros
+- Testes para o QueryBuilder com suporte a múltiplos operadores
+- Testes para serialização/deserialização MCP
+
 Próximos desenvolvimentos:
-- Testes abrangentes
+- Testes de integração com Testcontainers
+- Testes end-to-end para operações completas
 - Otimizações adicionais de desempenho
 - Documentação expandida de deployment
 

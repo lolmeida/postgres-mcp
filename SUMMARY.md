@@ -41,11 +41,13 @@ Implementação de um construtor de consultas SQL que traduz os filtros em cláu
 
 ## Arquivos Implementados
 
+Os testes foram organizados em um diretório dedicado `standalone_tests/` para separar os testes independentes dos testes integrados:
+
 - `test_standalone_filters.py`: Testes unitários para todos os modelos de filtro
 - `test_standalone_query_builder.py`: Testes para o QueryBuilder com filtros simples
 - `test_integrated.py`: Testes integrados que verificam a interação entre filtros e QueryBuilder
-- `run_filter_tests.py`: Script para executar todos os testes de uma vez
-- `FILTER_TESTS_README.md`: Instruções detalhadas sobre os testes
+
+Além disso, foi criado um script `run_tests.py` que permite executar os testes de forma organizada utilizando pytest.
 
 ## Resultados dos Testes
 
@@ -58,12 +60,12 @@ Todos os testes foram executados com sucesso, validando:
 ## Próximos Passos
 
 1. **Integração com o Projeto Principal**:
-   - Substituir as implementações standalone pelas importações dos módulos do projeto
-   - Configurar o pytest para executar os testes como parte da suíte principal
+   - Integrar os testes standalone com a suíte de testes do projeto principal
+   - Implementar testes de integração com banco de dados real
 
 2. **Testes Adicionais**:
    - Adicionar testes para casos de uso mais complexos
-   - Implementar testes de integração com o banco de dados real
+   - Implementar testes para funcionalidades específicas do PostgreSQL (views, funções, etc.)
 
 3. **Documentação**:
    - Melhorar a documentação de API para os modelos de filtro
