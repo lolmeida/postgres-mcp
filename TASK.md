@@ -176,10 +176,11 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 
 ### Empacotamento e Distribuição
 - [x] Configurar build para distribuição
-- [ ] Criar scripts de instalação
-- [ ] Desenvolver documentação de deployment
+- [x] Criar scripts de instalação
+- [x] Desenvolver documentação de deployment
 - [x] Implementar sistema de versionamento semântico
 - [ ] Configurar CI/CD para releases automáticos
+- [x] Criar requirements.txt para instalação direta via pip
 
 ## 🔄 Processo de Implementação
 
@@ -214,4 +215,4 @@ Para cada tarefa acima, seguir este processo:
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
 - **Fase atual**: Fase 6 - Testes (Em progresso)
-- **Progresso geral**: 98% 
+- **Progresso geral**: 99% 

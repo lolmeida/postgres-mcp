@@ -4,7 +4,7 @@ PostgreSQL MCP é uma implementação do Model Context Protocol (MCP) para permi
 
 ## Status do Projeto
 
-Status atual: **Versão 0.1.0** (95% concluído)
+Status atual: **Versão 0.1.0** (99% concluído)
 
 O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - Operações CRUD completas (criar, ler, atualizar, excluir)
@@ -47,8 +47,24 @@ PostgreSQL MCP permite que LLMs realizem operações complexas em bancos de dado
 
 ## Instalação
 
+### Via pip
+
 ```bash
 pip install postgres-mcp
+```
+
+### Via requirements.txt
+
+```bash
+# Clone o repositório
+git clone https://github.com/seu-usuario/postgres-mcp.git
+cd postgres-mcp
+
+# Instale as dependências
+pip install -r requirements.txt
+
+# Execute o servidor MCP
+python -m postgres_mcp
 ```
 
 ## Uso Básico

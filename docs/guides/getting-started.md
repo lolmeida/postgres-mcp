@@ -10,10 +10,28 @@ Este guia fornece instruções passo a passo para começar a usar o PostgreSQL M
 
 ## Instalação
 
+### Via pip
+
 Instale o pacote usando pip:
 
 ```bash
 pip install postgres-mcp
+```
+
+### Via requirements.txt
+
+Você também pode instalar diretamente do repositório:
+
+```bash
+# Clone o repositório
+git clone https://github.com/seu-usuario/postgres-mcp.git
+cd postgres-mcp
+
+# Instale as dependências
+pip install -r requirements.txt
+
+# Execute o servidor MCP
+python -m postgres_mcp
 ```
 
 ## Configuração Básica
