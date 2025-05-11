@@ -2,6 +2,23 @@
 
 Bem-vindo à documentação oficial do PostgreSQL MCP! Este projeto implementa o Model Context Protocol (MCP) para permitir que Modelos de Linguagem Grandes (LLMs) interajam diretamente com bancos de dados PostgreSQL.
 
+## Status do Projeto
+
+**Versão atual: 0.1.0 (70% concluído)**
+
+O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
+- ✅ Operações CRUD completas (criar, ler, atualizar, excluir)
+- ✅ Sistema de filtros avançado
+- ✅ Gerenciamento de transações
+- ✅ Compatibilidade com múltiplos schemas
+- ✅ Estrutura completa de camadas (Handlers, Services, Repository)
+
+**Próximos desenvolvimentos:**
+- 🔲 Testes automatizados abrangentes
+- 🔲 Suporte avançado para tipos específicos do PostgreSQL
+- 🔲 Otimizações de desempenho 
+- 🔲 Documentação expandida para casos de uso 
+
 ## Sobre o PostgreSQL MCP
 
 O PostgreSQL MCP serve como uma ponte entre LLMs e bancos de dados PostgreSQL, fornecendo um conjunto padronizado de ferramentas para operações de banco de dados. Isso permite que modelos como Claude e GPT consultem e modifiquem dados no PostgreSQL seguindo o protocolo MCP.
@@ -129,3 +146,7 @@ mcp.start()
 ## Contribuindo
 
 Contribuições são bem-vindas! Por favor, leia nossas [diretrizes de contribuição](https://github.com/yourusername/postgres-mcp/blob/main/CONTRIBUTING.md) antes de enviar um pull request.
+
+## Último Update
+
+Última atualização da documentação: 12 de Maio de 2025
