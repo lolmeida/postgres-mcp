@@ -402,4 +402,132 @@ class DropViewRequest(ViewReference):
     """
     
     if_exists: bool = Field(False, description="Se deve ignorar caso não exista")
-    cascade: bool = Field(False, description="Se deve excluir objetos dependentes") 
+    cascade: bool = Field(False, description="Se deve excluir objetos dependentes")
+
+
+# Modelos para suporte a funções e procedimentos armazenados
+
+class FunctionReference(BaseModel):
+    """
+    Referência a uma função PostgreSQL.
+    
+    Atributos:
+        function (str): Nome da função
+        schema (str, opcional): Nome do schema (default: "public")
+    """
+    
+    function: str = Field(..., description="Nome da função")
+    schema: str = Field("public", description="Nome do schema")
+    
+    @validator("function")
+    def validate_function(cls, v: str) -> str:
+        """Valida o nome da função."""
+        if not v:
+            raise ValueError("nome da função não pode ser vazio")
+        return v
+    
+    @validator("schema")
+    def validate_schema(cls, v: str) -> str:
+        """Valida o nome do schema."""
+        if not v:
+            raise ValueError("nome do schema não pode ser vazio")
+        return v
+
+
+class ListFunctionsRequest(BaseModel):
+    """
+    Modelo para requisição de listagem de funções.
+    
+    Atributos:
+        schema (str, opcional): Nome do schema (default: "public")
+        include_procedures (bool, opcional): Incluir procedimentos nos resultados (default: True)
+        include_aggregates (bool, opcional): Incluir funções de agregação (default: True)
+    """
+    
+    schema: str = Field("public", description="Nome do schema")
+    include_procedures: bool = Field(True, description="Incluir procedimentos nos resultados")
+    include_aggregates: bool = Field(True, description="Incluir funções de agregação")
+
+
+class DescribeFunctionRequest(FunctionReference):
+    """
+    Modelo para requisição de descrição de função.
+    
+    Atributos:
+        function (str): Nome da função
+        schema (str, opcional): Nome do schema (default: "public")
+    """
+    pass
+
+
+class ExecuteFunctionRequest(FunctionReference):
+    """
+    Modelo para requisição de execução de função.
+    
+    Atributos:
+        function (str): Nome da função
+        schema (str, opcional): Nome do schema (default: "public")
+        args (list, opcional): Argumentos posicionais para a função
+        named_args (dict, opcional): Argumentos nomeados para a função
+    """
+    
+    args: Optional[List[Any]] = Field(None, description="Argumentos posicionais para a função")
+    named_args: Optional[Dict[str, Any]] = Field(None, description="Argumentos nomeados para a função")
+
+
+class CreateFunctionRequest(FunctionReference):
+    """
+    Modelo para requisição de criação de função.
+    
+    Atributos:
+        function (str): Nome da função
+        schema (str, opcional): Nome do schema (default: "public")
+        definition (str): Definição SQL da função
+        return_type (str): Tipo de retorno da função
+        argument_definitions (list, opcional): Definições dos argumentos
+        language (str, opcional): Linguagem da função (default: "plpgsql")
+        is_procedure (bool, opcional): Se é um procedimento (default: False)
+        replace (bool, opcional): Se deve substituir caso já exista (default: False)
+        security_definer (bool, opcional): Se é executada com permissões do criador (default: False)
+        volatility (str, opcional): Volatilidade da função (default: "volatile")
+    """
+    
+    definition: str = Field(..., description="Definição SQL da função")
+    return_type: str = Field(..., description="Tipo de retorno da função")
+    argument_definitions: Optional[List[Dict[str, Any]]] = Field(None, description="Definições dos argumentos")
+    language: str = Field("plpgsql", description="Linguagem da função")
+    is_procedure: bool = Field(False, description="Se é um procedimento")
+    replace: bool = Field(False, description="Se deve substituir caso já exista")
+    security_definer: bool = Field(False, description="Se é executada com permissões do criador")
+    volatility: str = Field("volatile", description="Volatilidade da função (volatile, stable, immutable)")
+    
+    @validator("definition")
+    def validate_definition(cls, v: str) -> str:
+        """Valida a definição SQL."""
+        if not v:
+            raise ValueError("definition não pode ser vazia")
+        return v
+    
+    @validator("volatility")
+    def validate_volatility(cls, v: str) -> str:
+        """Valida a volatilidade da função."""
+        if v not in ["volatile", "stable", "immutable"]:
+            raise ValueError("volatility deve ser 'volatile', 'stable' ou 'immutable'")
+        return v
+
+
+class DropFunctionRequest(FunctionReference):
+    """
+    Modelo para requisição de exclusão de função.
+    
+    Atributos:
+        function (str): Nome da função
+        schema (str, opcional): Nome do schema (default: "public")
+        if_exists (bool, opcional): Se deve ignorar caso não exista (default: False)
+        cascade (bool, opcional): Se deve excluir objetos dependentes (default: False)
+        arg_types (list, opcional): Tipos dos argumentos para identificar a função específica
+    """
+    
+    if_exists: bool = Field(False, description="Se deve ignorar caso não exista")
+    cascade: bool = Field(False, description="Se deve excluir objetos dependentes")
+    arg_types: Optional[List[str]] = Field(None, description="Tipos dos argumentos para identificar a função específica") 

@@ -1442,3 +1442,390 @@ class PostgresRepository(BaseRepository):
             # Loga o erro e relança como exceção específica da aplicação
             self.logger.error(f"Erro ao excluir view: {str(e)}")
             raise RepositoryError(f"Erro ao excluir view: {str(e)}")
+
+    # Métodos para funções e procedimentos armazenados
+
+    async def get_functions(
+        self, 
+        schema: str = "public", 
+        include_procedures: bool = True,
+        include_aggregates: bool = True
+    ) -> List[str]:
+        """
+        Obtém a lista de funções em um schema.
+        
+        Args:
+            schema: Nome do schema
+            include_procedures: Se deve incluir procedimentos
+            include_aggregates: Se deve incluir funções de agregação
+            
+        Returns:
+            Lista de nomes de funções
+        """
+        try:
+            # Construir a parte da consulta para filtrar por tipo
+            proc_filter = ""
+            if not include_procedures:
+                proc_filter = "AND p.prokind = 'f'"  # Apenas funções
+            elif not include_aggregates:
+                proc_filter = "AND p.prokind != 'a'"  # Exclui funções de agregação
+            
+            # Consulta para obter funções
+            query = f"""
+                SELECT n.nspname as schema_name, p.proname as function_name
+                FROM pg_proc p
+                JOIN pg_namespace n ON p.pronamespace = n.oid
+                WHERE n.nspname = $1
+                {proc_filter}
+                ORDER BY p.proname
+            """
+            
+            # Executar a consulta
+            result = await self.pool.fetch(query, schema)
+            
+            # Extrair nomes de funções
+            functions = [row["function_name"] for row in result]
+            
+            return functions
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao obter funções: {str(e)}")
+            raise RepositoryError(f"Erro ao obter funções: {str(e)}")
+
+    async def describe_function(self, function: str, schema: str = "public") -> Dict[str, Any]:
+        """
+        Obtém a descrição detalhada de uma função.
+        
+        Args:
+            function: Nome da função
+            schema: Nome do schema
+            
+        Returns:
+            Dicionário com informações da função
+        """
+        try:
+            # Consulta para obter informações da função
+            query = """
+                SELECT 
+                    p.proname as name,
+                    n.nspname as schema,
+                    pg_get_function_result(p.oid) as return_type,
+                    pg_get_function_arguments(p.oid) as arguments,
+                    pg_get_functiondef(p.oid) as definition,
+                    l.lanname as language,
+                    p.prokind = 'p' as is_procedure,
+                    p.prokind = 'a' as is_aggregate,
+                    p.proiswindow as is_window,
+                    p.prosecdef as is_security_definer,
+                    CASE
+                        WHEN p.provolatile = 'i' THEN 'immutable'
+                        WHEN p.provolatile = 's' THEN 'stable'
+                        ELSE 'volatile'
+                    END as volatility,
+                    obj_description(p.oid, 'pg_proc') as comment,
+                    p.pronargs as num_args,
+                    p.proargtypes as arg_types,
+                    p.proallargtypes as all_arg_types,
+                    p.proargmodes as arg_modes,
+                    p.proargnames as arg_names,
+                    p.proargdefaults as arg_defaults
+                FROM pg_proc p
+                JOIN pg_namespace n ON p.pronamespace = n.oid
+                JOIN pg_language l ON p.prolang = l.oid
+                WHERE p.proname = $1 AND n.nspname = $2
+                LIMIT 1
+            """
+            
+            # Executar a consulta
+            row = await self.pool.fetchrow(query, function, schema)
+            
+            if not row:
+                raise RepositoryError(f"Função {schema}.{function} não encontrada")
+            
+            # Processar os argumentos
+            arg_types = []
+            arg_names = []
+            arg_defaults = []
+            
+            # Função para processar argumentos baseado nos metadados
+            if row["all_arg_types"] is not None:
+                # Processar informações completas de argumentos
+                all_arg_types = row["all_arg_types"]
+                arg_modes = row["arg_modes"]
+                arg_names_raw = row["arg_names"]
+                
+                # Mapear tipos de OIDs para tipos de dados
+                for i, type_oid in enumerate(all_arg_types):
+                    arg_type_query = "SELECT format_type($1, NULL) as type_name"
+                    type_name = await self.pool.fetchval(arg_type_query, type_oid)
+                    arg_types.append(type_name)
+                    
+                    # Coletar nomes se disponíveis
+                    if arg_names_raw and i < len(arg_names_raw):
+                        arg_names.append(arg_names_raw[i])
+                    else:
+                        arg_names.append(f"arg{i+1}")
+            
+            # Consulta adicional para obter valores padrão dos argumentos, que não são facilmente acessíveis
+            if row["num_args"] > 0:
+                defaults_query = """
+                    SELECT unnest(string_to_array(
+                        pg_get_function_arguments(p.oid), ', '
+                    )) as arg_with_default
+                    FROM pg_proc p
+                    JOIN pg_namespace n ON p.pronamespace = n.oid
+                    WHERE p.proname = $1 AND n.nspname = $2
+                """
+                
+                default_rows = await self.pool.fetch(defaults_query, function, schema)
+                for arg_row in default_rows:
+                    arg_with_default = arg_row["arg_with_default"]
+                    if " DEFAULT " in arg_with_default:
+                        default_value = arg_with_default.split(" DEFAULT ")[1]
+                        arg_defaults.append(default_value)
+                    else:
+                        arg_defaults.append(None)
+            
+            # Construir resultado
+            function_info = {
+                "name": row["name"],
+                "schema": row["schema"],
+                "return_type": row["return_type"],
+                "argument_types": arg_types,
+                "argument_names": arg_names,
+                "argument_defaults": arg_defaults,
+                "definition": row["definition"],
+                "language": row["language"],
+                "is_procedure": row["is_procedure"],
+                "is_aggregate": row["is_aggregate"],
+                "is_window": row["is_window"],
+                "is_security_definer": row["is_security_definer"],
+                "volatility": row["volatility"],
+                "comment": row["comment"]
+            }
+            
+            return function_info
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao descrever função: {str(e)}")
+            raise RepositoryError(f"Erro ao descrever função: {str(e)}")
+
+    async def execute_function(
+        self, 
+        function: str, 
+        schema: str = "public", 
+        args: Optional[List[Any]] = None,
+        named_args: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """
+        Executa uma função armazenada.
+        
+        Args:
+            function: Nome da função
+            schema: Nome do schema
+            args: Argumentos posicionais para a função
+            named_args: Argumentos nomeados para a função
+            
+        Returns:
+            Resultado da função
+        """
+        try:
+            # Primeiro, descrevemos a função para verificar se ela existe e suas características
+            function_info = await self.describe_function(function, schema)
+            
+            # Construir a parte de argumentos da consulta
+            arg_values = []
+            
+            if named_args:
+                # Para argumentos nomeados, construímos uma string no formato 'nome => valor'
+                arg_parts = []
+                for name, value in named_args.items():
+                    arg_parts.append(f"{name} => ${len(arg_values) + 1}")
+                    arg_values.append(value)
+                
+                args_string = ", ".join(arg_parts)
+            elif args:
+                # Para argumentos posicionais, usamos placeholders $1, $2, etc.
+                arg_parts = [f"${i + 1}" for i in range(len(args))]
+                args_string = ", ".join(arg_parts)
+                arg_values = args
+            else:
+                args_string = ""
+            
+            # Construir a consulta SQL baseada no tipo (função ou procedimento)
+            if function_info["is_procedure"]:
+                # Para procedimentos (PostgreSQL 11+)
+                query = f"CALL {schema}.{function}({args_string})"
+                await self.pool.execute(query, *arg_values)
+                # Procedimentos não retornam valores
+                return None
+            else:
+                # Para funções
+                query = f"SELECT {schema}.{function}({args_string})"
+                
+                # Executar a consulta
+                result = await self.pool.fetchval(query, *arg_values)
+                return result
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao executar função: {str(e)}")
+            raise RepositoryError(f"Erro ao executar função: {str(e)}")
+
+    async def create_function(
+        self,
+        function: str,
+        definition: str,
+        return_type: str,
+        schema: str = "public",
+        argument_definitions: Optional[List[Dict[str, Any]]] = None,
+        language: str = "plpgsql",
+        is_procedure: bool = False,
+        replace: bool = False,
+        security_definer: bool = False,
+        volatility: str = "volatile"
+    ) -> Dict[str, Any]:
+        """
+        Cria uma nova função ou procedimento.
+        
+        Args:
+            function: Nome da função
+            definition: Definição SQL da função
+            return_type: Tipo de retorno da função
+            schema: Nome do schema
+            argument_definitions: Definições dos argumentos
+            language: Linguagem da função
+            is_procedure: Se é um procedimento
+            replace: Se deve substituir caso já exista
+            security_definer: Se é executada com permissões do criador
+            volatility: Volatilidade da função
+            
+        Returns:
+            Informações da função criada
+        """
+        try:
+            # Construir a parte de argumentos
+            args_string = ""
+            if argument_definitions:
+                arg_parts = []
+                for arg in argument_definitions:
+                    # Cada argumento deve ter pelo menos nome e tipo
+                    arg_name = arg.get("name", "").strip()
+                    arg_type = arg.get("type", "").strip()
+                    
+                    if not arg_name or not arg_type:
+                        raise ValueError("Todos os argumentos devem ter nome e tipo")
+                    
+                    arg_str = f"{arg_name} {arg_type}"
+                    
+                    # Adicionar valor padrão, se fornecido
+                    if "default" in arg and arg["default"] is not None:
+                        arg_str += f" DEFAULT {arg['default']}"
+                    
+                    # Adicionar modo, se fornecido (IN, OUT, INOUT)
+                    if "mode" in arg and arg["mode"] is not None:
+                        mode = arg["mode"].upper()
+                        if mode not in ["IN", "OUT", "INOUT", "VARIADIC"]:
+                            raise ValueError(f"Modo de argumento inválido: {mode}")
+                        
+                        # Modos posicionais antes do nome
+                        arg_str = f"{mode} {arg_str}"
+                    
+                    arg_parts.append(arg_str)
+                
+                args_string = ", ".join(arg_parts)
+            
+            # Construir a consulta SQL para criar a função
+            create_replace = "CREATE OR REPLACE" if replace else "CREATE"
+            func_or_proc = "PROCEDURE" if is_procedure else "FUNCTION"
+            
+            # Para funções normais, precisamos do tipo de retorno
+            returns_clause = "" if is_procedure else f"RETURNS {return_type}"
+            
+            # Definir características da função
+            security_clause = "SECURITY DEFINER" if security_definer else "SECURITY INVOKER"
+            volatility_clause = volatility.upper()
+            
+            # Construir a consulta SQL completa
+            query = f"""
+                {create_replace} {func_or_proc} {schema}.{function}({args_string})
+                {returns_clause}
+                LANGUAGE {language}
+                {security_clause}
+                {volatility_clause}
+                AS $function$
+                {definition}
+                $function$;
+            """
+            
+            # Executar a consulta
+            await self.pool.execute(query)
+            
+            # Retornar informações da função criada
+            function_info = await self.describe_function(function, schema)
+            return function_info
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao criar função: {str(e)}")
+            raise RepositoryError(f"Erro ao criar função: {str(e)}")
+
+    async def drop_function(
+        self,
+        function: str,
+        schema: str = "public",
+        if_exists: bool = False,
+        cascade: bool = False,
+        arg_types: Optional[List[str]] = None
+    ) -> bool:
+        """
+        Exclui uma função.
+        
+        Args:
+            function: Nome da função
+            schema: Nome do schema
+            if_exists: Se deve ignorar caso não exista
+            cascade: Se deve excluir objetos dependentes
+            arg_types: Tipos dos argumentos para identificar a função específica
+            
+        Returns:
+            True se a exclusão foi bem-sucedida
+        """
+        try:
+            # Verificar se a função existe
+            if not if_exists:
+                exists_query = """
+                    SELECT EXISTS (
+                        SELECT 1 FROM pg_proc p
+                        JOIN pg_namespace n ON p.pronamespace = n.oid
+                        WHERE p.proname = $1 AND n.nspname = $2
+                    ) AS exists
+                """
+                
+                exists = await self.pool.fetchval(exists_query, function, schema)
+                
+                if not exists:
+                    raise RepositoryError(f"Função {schema}.{function} não encontrada")
+            
+            # Construir a parte de argumentos, se fornecidos
+            args_part = ""
+            if arg_types:
+                args_part = f"({', '.join(arg_types)})"
+            
+            # Construir a consulta SQL para excluir a função
+            if_exists_str = "IF EXISTS" if if_exists else ""
+            cascade_str = "CASCADE" if cascade else ""
+            
+            query = f"DROP FUNCTION {if_exists_str} {schema}.{function}{args_part} {cascade_str}"
+            
+            # Executar a consulta
+            await self.pool.execute(query)
+            
+            return True
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao excluir função: {str(e)}")
+            raise RepositoryError(f"Erro ao excluir função: {str(e)}")

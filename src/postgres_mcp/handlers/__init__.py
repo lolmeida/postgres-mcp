@@ -1,91 +1,168 @@
 """
-Pacote de handlers para processamento de requisições MCP
+Pacote de handlers MCP para processamento de requisições
 """
 
-from postgres_mcp.handlers.base import BaseHandler
+from postgres_mcp.core.exceptions import HandlerError
+from postgres_mcp.handlers.base import HandlerBase, HandlerRegistry
+from postgres_mcp.handlers.database import (
+    ListDatabasesHandler, ConnectDatabaseHandler, GetConnectionHandler
+)
 from postgres_mcp.handlers.schema import (
-    ListSchemasHandler, ListTablesHandler, DescribeTableHandler
+    ListSchemasHandler, CreateSchemaHandler, DescribeSchemaHandler, DropSchemaHandler
 )
 from postgres_mcp.handlers.table import (
-    ReadTableHandler, CreateRecordHandler, CreateBatchHandler, 
-    UpdateRecordsHandler, DeleteRecordsHandler
+    ListTablesHandler, DescribeTableHandler, CreateTableHandler, 
+    AlterTableHandler, DropTableHandler, TruncateTableHandler
 )
-from postgres_mcp.handlers.query import ExecuteQueryHandler
+from postgres_mcp.handlers.query import (
+    QueryHandler, InsertHandler, UpdateHandler, DeleteHandler, 
+    CountHandler, ExistsHandler, MetadataHandler
+)
 from postgres_mcp.handlers.transaction import (
-    BeginTransactionHandler, CommitTransactionHandler, RollbackTransactionHandler
+    BeginTransactionHandler, CommitTransactionHandler, 
+    RollbackTransactionHandler, TransactionStatusHandler
 )
 from postgres_mcp.handlers.cache import (
-    GetCacheStatsHandler, ClearCacheHandler
+    GetCacheHandler, SetCacheHandler, DeleteCacheHandler, 
+    FlushCacheHandler, GetCacheStatsHandler
 )
 from postgres_mcp.handlers.metrics import (
-    GetMetricsHandler, ResetMetricsHandler
+    GetMetricsHandler, ResetMetricsHandler, GetPerformanceHandler
 )
 from postgres_mcp.handlers.views import (
-    CreateViewHandler, DescribeViewHandler, DropViewHandler,
-    ListViewsHandler, ReadViewHandler, RefreshMaterializedViewHandler
+    ListViewsHandler, DescribeViewHandler, CreateViewHandler,
+    RefreshViewHandler, DropViewHandler
+)
+from postgres_mcp.handlers.functions import (
+    ListFunctionsHandler, DescribeFunctionHandler, ExecuteFunctionHandler,
+    CreateFunctionHandler, DropFunctionHandler
 )
 
 __all__ = [
-    'BaseHandler',
+    'HandlerBase',
+    'HandlerRegistry',
+    'HandlerError',
+    # Database Handlers
+    'ListDatabasesHandler',
+    'ConnectDatabaseHandler',
+    'GetConnectionHandler',
+    # Schema Handlers
     'ListSchemasHandler',
+    'CreateSchemaHandler',
+    'DescribeSchemaHandler',
+    'DropSchemaHandler',
+    # Table Handlers
     'ListTablesHandler',
     'DescribeTableHandler',
-    'ReadTableHandler',
-    'CreateRecordHandler',
-    'CreateBatchHandler',
-    'UpdateRecordsHandler',
-    'DeleteRecordsHandler',
-    'ExecuteQueryHandler',
+    'CreateTableHandler',
+    'AlterTableHandler',
+    'DropTableHandler',
+    'TruncateTableHandler',
+    # Query Handlers
+    'QueryHandler',
+    'InsertHandler',
+    'UpdateHandler',
+    'DeleteHandler',
+    'CountHandler',
+    'ExistsHandler',
+    'MetadataHandler',
+    # Transaction Handlers
     'BeginTransactionHandler',
     'CommitTransactionHandler',
     'RollbackTransactionHandler',
+    'TransactionStatusHandler',
+    # Cache Handlers
+    'GetCacheHandler',
+    'SetCacheHandler',
+    'DeleteCacheHandler',
+    'FlushCacheHandler',
     'GetCacheStatsHandler',
-    'ClearCacheHandler',
+    # Metrics Handlers
     'GetMetricsHandler',
     'ResetMetricsHandler',
-    'CreateViewHandler',
-    'DescribeViewHandler',
-    'DropViewHandler',
+    'GetPerformanceHandler',
+    # View Handlers
     'ListViewsHandler',
-    'ReadViewHandler',
-    'RefreshMaterializedViewHandler'
+    'DescribeViewHandler',
+    'CreateViewHandler',
+    'RefreshViewHandler',
+    'DropViewHandler',
+    # Function Handlers
+    'ListFunctionsHandler',
+    'DescribeFunctionHandler',
+    'ExecuteFunctionHandler',
+    'CreateFunctionHandler',
+    'DropFunctionHandler',
 ]
 
-# Mapeamento de ferramentas para handlers
-TOOL_HANDLERS = {
-    # Ferramentas de schema
-    "list_schemas": ListSchemasHandler,
+def register_handlers(registry: HandlerRegistry) -> HandlerRegistry:
+    """
+    Registra todos os handlers disponíveis.
     
-    # Ferramentas de tabela
-    "list_tables": ListTablesHandler,
-    "describe_table": DescribeTableHandler,
-    "read_table": ReadTableHandler,
-    "create_record": CreateRecordHandler,
-    "create_batch": CreateBatchHandler,
-    "update_records": UpdateRecordsHandler,
-    "delete_records": DeleteRecordsHandler,
+    Args:
+        registry: Registro de handlers
+        
+    Returns:
+        Registro atualizado
+    """
+    # Database Handlers
+    registry.register("list_databases", ListDatabasesHandler)
+    registry.register("connect_database", ConnectDatabaseHandler)
+    registry.register("get_connection", GetConnectionHandler)
     
-    # Ferramentas de consulta
-    "execute_query": ExecuteQueryHandler,
+    # Schema Handlers
+    registry.register("list_schemas", ListSchemasHandler)
+    registry.register("create_schema", CreateSchemaHandler)
+    registry.register("describe_schema", DescribeSchemaHandler)
+    registry.register("drop_schema", DropSchemaHandler)
     
-    # Ferramentas de transação
-    "begin_transaction": BeginTransactionHandler,
-    "commit_transaction": CommitTransactionHandler,
-    "rollback_transaction": RollbackTransactionHandler,
+    # Table Handlers
+    registry.register("list_tables", ListTablesHandler)
+    registry.register("describe_table", DescribeTableHandler)
+    registry.register("create_table", CreateTableHandler)
+    registry.register("alter_table", AlterTableHandler)
+    registry.register("drop_table", DropTableHandler)
+    registry.register("truncate_table", TruncateTableHandler)
     
-    # Ferramentas de cache
-    "get_cache_stats": GetCacheStatsHandler,
-    "clear_cache": ClearCacheHandler,
+    # Query Handlers
+    registry.register("query", QueryHandler)
+    registry.register("insert", InsertHandler)
+    registry.register("update", UpdateHandler)
+    registry.register("delete", DeleteHandler)
+    registry.register("count", CountHandler)
+    registry.register("exists", ExistsHandler)
+    registry.register("metadata", MetadataHandler)
     
-    # Ferramentas de métricas
-    "get_metrics": GetMetricsHandler,
-    "reset_metrics": ResetMetricsHandler,
+    # Transaction Handlers
+    registry.register("begin_transaction", BeginTransactionHandler)
+    registry.register("commit_transaction", CommitTransactionHandler)
+    registry.register("rollback_transaction", RollbackTransactionHandler)
+    registry.register("transaction_status", TransactionStatusHandler)
     
-    # Ferramentas de views
-    "list_views": ListViewsHandler,
-    "describe_view": DescribeViewHandler,
-    "read_view": ReadViewHandler,
-    "create_view": CreateViewHandler,
-    "refresh_materialized_view": RefreshMaterializedViewHandler,
-    "drop_view": DropViewHandler
-} 
+    # Cache Handlers
+    registry.register("get_cache", GetCacheHandler)
+    registry.register("set_cache", SetCacheHandler)
+    registry.register("delete_cache", DeleteCacheHandler)
+    registry.register("flush_cache", FlushCacheHandler)
+    registry.register("get_cache_stats", GetCacheStatsHandler)
+    
+    # Metrics Handlers
+    registry.register("get_metrics", GetMetricsHandler)
+    registry.register("reset_metrics", ResetMetricsHandler)
+    registry.register("get_performance", GetPerformanceHandler)
+    
+    # View Handlers
+    registry.register("list_views", ListViewsHandler)
+    registry.register("describe_view", DescribeViewHandler)
+    registry.register("create_view", CreateViewHandler)
+    registry.register("refresh_view", RefreshViewHandler)
+    registry.register("drop_view", DropViewHandler)
+    
+    # Function Handlers
+    registry.register("list_functions", ListFunctionsHandler)
+    registry.register("describe_function", DescribeFunctionHandler)
+    registry.register("execute_function", ExecuteFunctionHandler)
+    registry.register("create_function", CreateFunctionHandler)
+    registry.register("drop_function", DropFunctionHandler)
+    
+    return registry 

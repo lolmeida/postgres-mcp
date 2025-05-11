@@ -10,6 +10,7 @@ from postgres_mcp.services.transaction import TransactionService
 from postgres_mcp.services.cache import CacheService
 from postgres_mcp.services.metrics import MetricsService
 from postgres_mcp.services.views import ViewService
+from postgres_mcp.services.functions import FunctionService
 
 __all__ = [
     'BaseService',
@@ -19,7 +20,8 @@ __all__ = [
     'TransactionService',
     'CacheService',
     'MetricsService',
-    'ViewService'
+    'ViewService',
+    'FunctionService'
 ]
 
 class ServiceContainer:
@@ -39,6 +41,7 @@ class ServiceContainer:
         self.cache_service = CacheService()
         self.metrics_service = MetricsService()
         self.view_service = ViewService(repository)
+        self.function_service = FunctionService(repository)
         
         # Registra o repositório na métrica para monitoramento
         self.metrics_service.register_repository(repository) 
