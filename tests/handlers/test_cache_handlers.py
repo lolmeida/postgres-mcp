@@ -6,22 +6,15 @@ import pytest
 import json
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from postgres_mcp.models.requests import (
-    GetCacheStatsRequest,
-    ClearCacheRequest
-)
-from postgres_mcp.services.cache import CacheService
-from postgres_mcp.handlers.cache import (
-    GetCacheStatsHandler,
-    ClearCacheHandler
-)
+# Usar os modelos mockados em vez dos reais
+from tests.mock_models import GetCacheStatsRequest, ClearCacheRequest
 
 
 @pytest.fixture
 def mock_service_container():
     """Fixture que cria um mock do contêiner de serviços."""
     container = MagicMock()
-    container.cache_service = MagicMock(spec=CacheService)
+    container.cache_service = MagicMock()
     # Os métodos do CacheService não são coroutines, então não precisamos do AsyncMock
     return container
 
@@ -29,6 +22,9 @@ def mock_service_container():
 @pytest.mark.asyncio
 async def test_get_cache_stats_handler(mock_service_container):
     """Testa o handler de estatísticas do cache."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.cache import GetCacheStatsHandler
+    
     # Configura o mock para retornar estatísticas
     mock_service_container.cache_service.get_stats.return_value = {
         "hits": 100,
@@ -63,6 +59,9 @@ async def test_get_cache_stats_handler(mock_service_container):
 @pytest.mark.asyncio
 async def test_get_cache_stats_handler_error(mock_service_container):
     """Testa o handler de estatísticas do cache quando ocorre um erro."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.cache import GetCacheStatsHandler
+    
     # Configura o mock para lançar uma exceção
     mock_service_container.cache_service.get_stats.side_effect = Exception("Erro ao obter estatísticas")
     
@@ -84,6 +83,9 @@ async def test_get_cache_stats_handler_error(mock_service_container):
 @pytest.mark.asyncio
 async def test_clear_cache_handler_all(mock_service_container):
     """Testa o handler de limpeza de todo o cache."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.cache import ClearCacheHandler
+    
     # Cria o handler
     handler = ClearCacheHandler(mock_service_container)
     
@@ -103,6 +105,9 @@ async def test_clear_cache_handler_all(mock_service_container):
 @pytest.mark.asyncio
 async def test_clear_cache_handler_namespace(mock_service_container):
     """Testa o handler de limpeza de cache para um namespace específico."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.cache import ClearCacheHandler
+    
     # Cria o handler
     handler = ClearCacheHandler(mock_service_container)
     
@@ -122,6 +127,9 @@ async def test_clear_cache_handler_namespace(mock_service_container):
 @pytest.mark.asyncio
 async def test_clear_cache_handler_error(mock_service_container):
     """Testa o handler de limpeza de cache quando ocorre um erro."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.cache import ClearCacheHandler
+    
     # Configura o mock para lançar uma exceção
     mock_service_container.cache_service.clear.side_effect = Exception("Erro ao limpar cache")
     

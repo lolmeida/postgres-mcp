@@ -6,18 +6,12 @@ import pytest
 import json
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from postgres_mcp.models.requests import (
+# Usar os modelos mockados em vez dos reais
+from tests.mock_models import (
     BeginTransactionRequest,
     CommitTransactionRequest,
     RollbackTransactionRequest,
     GetTransactionStatusRequest
-)
-from postgres_mcp.services.transaction import TransactionService
-from postgres_mcp.handlers.transaction import (
-    BeginTransactionHandler,
-    CommitTransactionHandler,
-    RollbackTransactionHandler,
-    GetTransactionStatusHandler
 )
 
 
@@ -25,7 +19,7 @@ from postgres_mcp.handlers.transaction import (
 def mock_service_container():
     """Fixture que cria um mock do contêiner de serviços."""
     container = MagicMock()
-    container.transaction_service = MagicMock(spec=TransactionService)
+    container.transaction_service = MagicMock()
     # Transformar os métodos em coroutines
     container.transaction_service.begin_transaction = AsyncMock()
     container.transaction_service.commit_transaction = AsyncMock()
@@ -37,6 +31,9 @@ def mock_service_container():
 @pytest.mark.asyncio
 async def test_begin_transaction_handler(mock_service_container):
     """Testa o handler de início de transação."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import BeginTransactionHandler
+    
     # Configura o mock para retornar um ID de transação
     mock_service_container.transaction_service.begin_transaction.return_value = "tx_1234"
     
@@ -61,6 +58,9 @@ async def test_begin_transaction_handler(mock_service_container):
 @pytest.mark.asyncio
 async def test_begin_transaction_handler_error(mock_service_container):
     """Testa o handler de início de transação quando ocorre um erro."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import BeginTransactionHandler
+    
     # Configura o mock para lançar uma exceção
     mock_service_container.transaction_service.begin_transaction.side_effect = Exception("Erro ao iniciar transação")
     
@@ -82,6 +82,9 @@ async def test_begin_transaction_handler_error(mock_service_container):
 @pytest.mark.asyncio
 async def test_commit_transaction_handler(mock_service_container):
     """Testa o handler de commit de transação."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import CommitTransactionHandler
+    
     # Configura o mock para retornar sucesso
     mock_service_container.transaction_service.commit_transaction.return_value = True
     
@@ -104,6 +107,9 @@ async def test_commit_transaction_handler(mock_service_container):
 @pytest.mark.asyncio
 async def test_commit_transaction_handler_error(mock_service_container):
     """Testa o handler de commit de transação quando ocorre um erro."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import CommitTransactionHandler
+    
     # Configura o mock para lançar uma exceção
     mock_service_container.transaction_service.commit_transaction.side_effect = Exception("Transação não existe")
     
@@ -125,6 +131,9 @@ async def test_commit_transaction_handler_error(mock_service_container):
 @pytest.mark.asyncio
 async def test_rollback_transaction_handler(mock_service_container):
     """Testa o handler de rollback de transação."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import RollbackTransactionHandler
+    
     # Configura o mock para retornar sucesso
     mock_service_container.transaction_service.rollback_transaction.return_value = True
     
@@ -147,6 +156,9 @@ async def test_rollback_transaction_handler(mock_service_container):
 @pytest.mark.asyncio
 async def test_rollback_transaction_handler_error(mock_service_container):
     """Testa o handler de rollback de transação quando ocorre um erro."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import RollbackTransactionHandler
+    
     # Configura o mock para lançar uma exceção
     mock_service_container.transaction_service.rollback_transaction.side_effect = Exception("Transação já finalizada")
     
@@ -168,6 +180,9 @@ async def test_rollback_transaction_handler_error(mock_service_container):
 @pytest.mark.asyncio
 async def test_get_transaction_status_handler(mock_service_container):
     """Testa o handler de status de transação."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import GetTransactionStatusHandler
+    
     # Configura o mock para retornar um status
     mock_service_container.transaction_service.get_transaction_status.return_value = {
         "id": "tx_1234",
@@ -200,6 +215,9 @@ async def test_get_transaction_status_handler(mock_service_container):
 @pytest.mark.asyncio
 async def test_get_transaction_status_handler_error(mock_service_container):
     """Testa o handler de status de transação quando ocorre um erro."""
+    # Importar localmente para garantir que estamos usando o mock
+    from postgres_mcp.handlers.transaction import GetTransactionStatusHandler
+    
     # Configura o mock para lançar uma exceção
     mock_service_container.transaction_service.get_transaction_status.side_effect = Exception("Transação não encontrada")
     
