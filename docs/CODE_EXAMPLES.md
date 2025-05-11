@@ -956,3 +956,304 @@ def reset_metrics(base_url="http://localhost:8000"):
 result = reset_metrics()
 print(result['data']['message'])
 ```
+
+## Operações com Views
+
+Exemplos de como trabalhar com views PostgreSQL usando o PostgreSQL MCP.
+
+### Listar Views
+
+```python
+import requests
+
+def list_views(base_url="http://localhost:8000", schema="public", include_materialized=True):
+    """
+    Lista todas as views em um schema.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        schema: Nome do schema
+        include_materialized: Se deve incluir views materializadas
+    """
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "list_views",
+            "parameters": {
+                "schema": schema,
+                "include_materialized": include_materialized
+            }
+        }
+    )
+    return response.json()
+
+# Exemplo: listar todas as views no schema 'public'
+views = list_views()
+print(f"Views encontradas: {views['data']}")
+
+# Exemplo: listar apenas views normais (não materializadas) no schema 'analytics'
+views = list_views(schema="analytics", include_materialized=False)
+print(f"Views normais encontradas: {views['data']}")
+```
+
+### Descrever View
+
+```python
+import requests
+
+def describe_view(base_url="http://localhost:8000", view="active_users", schema="public"):
+    """
+    Obtém informações detalhadas sobre uma view.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        view: Nome da view
+        schema: Nome do schema
+    """
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "describe_view",
+            "parameters": {
+                "view": view,
+                "schema": schema
+            }
+        }
+    )
+    return response.json()
+
+# Exemplo: descrever uma view
+view_info = describe_view(view="customer_orders")
+print(f"Nome: {view_info['data']['name']}")
+print(f"Schema: {view_info['data']['schema']}")
+print(f"Definição: {view_info['data']['definition']}")
+print(f"Materializada: {view_info['data']['is_materialized']}")
+print(f"Colunas:")
+for column in view_info['data']['columns']:
+    print(f"  - {column['name']} ({column['data_type']})")
+```
+
+### Ler Dados de uma View
+
+```python
+import requests
+
+def read_view(base_url="http://localhost:8000", view="sales_summary", schema="public", 
+              filters=None, columns=None, order_by=None, ascending=True, limit=None, offset=None):
+    """
+    Lê registros de uma view.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        view: Nome da view
+        schema: Nome do schema
+        filters: Filtros para a consulta
+        columns: Colunas específicas a retornar
+        order_by: Coluna para ordenação
+        ascending: Direção da ordenação
+        limit: Limite de registros a retornar
+        offset: Número de registros a pular
+    """
+    params = {
+        "view": view,
+        "schema": schema
+    }
+    
+    if filters:
+        params["filters"] = filters
+    
+    if columns:
+        params["columns"] = columns
+    
+    if order_by:
+        params["order_by"] = order_by
+        params["ascending"] = ascending
+    
+    if limit:
+        params["limit"] = limit
+        
+    if offset:
+        params["offset"] = offset
+    
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "read_view",
+            "parameters": params
+        }
+    )
+    return response.json()
+
+# Exemplo: leitura simples de uma view
+results = read_view(view="active_users")
+print(f"Total de usuários ativos: {results['count']}")
+for user in results['data']:
+    print(f"ID: {user['id']}, Nome: {user['name']}, Email: {user['email']}")
+
+# Exemplo: leitura com filtros e paginação
+results = read_view(
+    view="order_summary",
+    schema="reporting",
+    filters={
+        "order_date": {"gte": "2023-01-01"},
+        "total_amount": {"gt": 1000}
+    },
+    columns=["order_id", "customer_name", "total_amount", "order_date"],
+    order_by="total_amount",
+    ascending=False,
+    limit=10
+)
+print(f"Pedidos de alto valor: {results['count']}")
+for order in results['data']:
+    print(f"Pedido #{order['order_id']}: {order['customer_name']} - R$ {order['total_amount']:.2f}")
+```
+
+### Criar View
+
+```python
+import requests
+
+def create_view(base_url="http://localhost:8000", view="active_users", definition=None, 
+               schema="public", is_materialized=False, replace=False):
+    """
+    Cria ou atualiza uma view.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        view: Nome da view
+        definition: Definição SQL da view
+        schema: Nome do schema
+        is_materialized: Se é uma view materializada
+        replace: Se deve substituir caso já exista
+    """
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "create_view",
+            "parameters": {
+                "view": view,
+                "schema": schema,
+                "definition": definition,
+                "is_materialized": is_materialized,
+                "replace": replace
+            }
+        }
+    )
+    return response.json()
+
+# Exemplo: criar uma view simples
+result = create_view(
+    view="active_users",
+    definition="SELECT id, name, email FROM users WHERE active = true"
+)
+print(f"View criada: {result['data']['name']}")
+
+# Exemplo: criar uma view materializada
+result = create_view(
+    view="monthly_revenue",
+    schema="analytics",
+    definition="""
+        SELECT 
+            DATE_TRUNC('month', order_date) as month,
+            SUM(amount) as revenue
+        FROM orders
+        GROUP BY DATE_TRUNC('month', order_date)
+    """,
+    is_materialized=True,
+    replace=True
+)
+print(f"View materializada criada: {result['data']['name']}")
+```
+
+### Atualizar View Materializada
+
+```python
+import requests
+
+def refresh_materialized_view(base_url="http://localhost:8000", view="daily_stats", 
+                             schema="public", concurrently=False):
+    """
+    Atualiza uma view materializada.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        view: Nome da view materializada
+        schema: Nome do schema
+        concurrently: Se deve atualizar concorrentemente (sem bloquear leituras)
+    """
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "refresh_materialized_view",
+            "parameters": {
+                "view": view,
+                "schema": schema,
+                "concurrently": concurrently
+            }
+        }
+    )
+    return response.json()
+
+# Exemplo: atualizar uma view materializada
+result = refresh_materialized_view(view="sales_summary")
+if result['data']['success']:
+    print("View materializada atualizada com sucesso!")
+else:
+    print("Erro ao atualizar view materializada.")
+
+# Exemplo: atualizar concorrentemente (sem bloquear leituras)
+result = refresh_materialized_view(
+    view="customer_stats",
+    schema="analytics",
+    concurrently=True
+)
+print(result['data']['message'] if 'message' in result['data'] else "Atualização concorrente completada.")
+```
+
+### Excluir View
+
+```python
+import requests
+
+def drop_view(base_url="http://localhost:8000", view="temp_view", 
+             schema="public", if_exists=False, cascade=False):
+    """
+    Exclui uma view.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        view: Nome da view
+        schema: Nome do schema
+        if_exists: Se deve ignorar caso não exista
+        cascade: Se deve excluir objetos dependentes
+    """
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "drop_view",
+            "parameters": {
+                "view": view,
+                "schema": schema,
+                "if_exists": if_exists,
+                "cascade": cascade
+            }
+        }
+    )
+    return response.json()
+
+# Exemplo: excluir uma view
+result = drop_view(view="old_report")
+if result['data']['success']:
+    print("View excluída com sucesso!")
+else:
+    print("Erro ao excluir view.")
+
+# Exemplo: excluir uma view com dependências, ignorando se não existir
+result = drop_view(
+    view="temp_analysis",
+    schema="analytics",
+    if_exists=True,
+    cascade=True
+)
+print(result['data']['message'] if 'message' in result['data'] else "View excluída com sucesso.")
+```

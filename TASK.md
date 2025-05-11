@@ -98,7 +98,7 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 ### Funcionalidades PostgreSQL Avançadas
 - [x] Implementar suporte a múltiplos schemas
 - [x] Adicionar suporte a tipos de dados avançados
-- [ ] Criar funcionalidades para trabalhar com views
+- [x] Criar funcionalidades para trabalhar com views
 - [ ] Implementar suporte a funções e procedimentos armazenados
 - [ ] Adicionar suporte a CTEs e Window Functions
 
@@ -190,9 +190,9 @@ Para cada tarefa acima, seguir este processo:
    - Push para o repositório remoto
    - Marcar tarefa como concluída neste documento
 
-## 📋 Status do Projeto
+## �� Status do Projeto
 
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
 - **Fase atual**: Fase 5 - Implementação de Funcionalidades Avançadas (Em progresso)
-- **Progresso geral**: 85% 
+- **Progresso geral**: 88% 
