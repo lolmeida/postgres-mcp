@@ -81,4 +81,25 @@ class ConfigurationError(PostgresMCPError):
     """Erro de configuração."""
     
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(message, "configuration_error", details) 
+        super().__init__(message, "configuration_error", details)
+
+
+class HandlerError(PostgresMCPError):
+    """Erro específico de handler."""
+    
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, "handler_error", details)
+
+
+class RepositoryError(PostgresMCPError):
+    """Erro específico do repositório de dados."""
+    
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, "repository_error", details)
+
+
+class ServiceError(PostgresMCPError):
+    """Erro específico de serviço."""
+    
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, "service_error", details) 

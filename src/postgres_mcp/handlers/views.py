@@ -6,7 +6,7 @@ import logging
 from typing import Any, Dict
 
 from postgres_mcp.core.exceptions import HandlerError
-from postgres_mcp.handlers.base import HandlerBase
+from postgres_mcp.handlers.base import BaseHandler
 from postgres_mcp.models.requests import (
     CreateViewRequest, DescribeViewRequest, DropViewRequest,
     ListViewsRequest, ReadViewRequest, RefreshMaterializedViewRequest
@@ -14,7 +14,7 @@ from postgres_mcp.models.requests import (
 from postgres_mcp.models.response import DataResponse, ErrorResponse
 
 
-class ListViewsHandler(HandlerBase):
+class ListViewsHandler(BaseHandler):
     """Handler para listagem de views."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -58,7 +58,7 @@ class ListViewsHandler(HandlerBase):
             ).model_dump()
 
 
-class DescribeViewHandler(HandlerBase):
+class DescribeViewHandler(BaseHandler):
     """Handler para descrição de view."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -102,7 +102,7 @@ class DescribeViewHandler(HandlerBase):
             ).model_dump()
 
 
-class ReadViewHandler(HandlerBase):
+class ReadViewHandler(BaseHandler):
     """Handler para leitura de view."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -152,7 +152,7 @@ class ReadViewHandler(HandlerBase):
             ).model_dump()
 
 
-class CreateViewHandler(HandlerBase):
+class CreateViewHandler(BaseHandler):
     """Handler para criação de view."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -199,8 +199,8 @@ class CreateViewHandler(HandlerBase):
             ).model_dump()
 
 
-class RefreshMaterializedViewHandler(HandlerBase):
-    """Handler para atualização de view materializada."""
+class RefreshMaterializedViewHandler(BaseHandler):
+    """Handler para atualizar view materializada."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -217,7 +217,7 @@ class RefreshMaterializedViewHandler(HandlerBase):
             request = RefreshMaterializedViewRequest(**params)
             
             # Atualiza a view materializada
-            success = await self.services.view_service.refresh_materialized_view(
+            result = await self.services.view_service.refresh_materialized_view(
                 view=request.view,
                 schema=request.schema,
                 concurrently=request.concurrently
@@ -226,7 +226,7 @@ class RefreshMaterializedViewHandler(HandlerBase):
             # Retorna resposta de sucesso
             return DataResponse(
                 success=True,
-                data={"success": success},
+                data={"view": f"{request.schema}.{request.view}", "refreshed": result},
                 count=1
             ).model_dump()
             
@@ -244,8 +244,8 @@ class RefreshMaterializedViewHandler(HandlerBase):
             ).model_dump()
 
 
-class DropViewHandler(HandlerBase):
-    """Handler para exclusão de view."""
+class DropViewHandler(BaseHandler):
+    """Handler para excluir view."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -262,9 +262,10 @@ class DropViewHandler(HandlerBase):
             request = DropViewRequest(**params)
             
             # Exclui a view
-            success = await self.services.view_service.drop_view(
+            result = await self.services.view_service.drop_view(
                 view=request.view,
                 schema=request.schema,
+                is_materialized=request.is_materialized,
                 if_exists=request.if_exists,
                 cascade=request.cascade
             )
@@ -272,7 +273,7 @@ class DropViewHandler(HandlerBase):
             # Retorna resposta de sucesso
             return DataResponse(
                 success=True,
-                data={"success": success},
+                data={"view": f"{request.schema}.{request.view}", "dropped": result},
                 count=1
             ).model_dump()
             

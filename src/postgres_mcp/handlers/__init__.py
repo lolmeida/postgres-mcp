@@ -2,17 +2,16 @@
 Pacote de handlers MCP para processamento de requisições
 """
 
-from postgres_mcp.core.exceptions import HandlerError
-from postgres_mcp.handlers.base import HandlerBase, HandlerRegistry
+from postgres_mcp.handlers.base import BaseHandler, HandlerRegistry
 from postgres_mcp.handlers.database import (
     ListDatabasesHandler, ConnectDatabaseHandler, GetConnectionHandler
 )
 from postgres_mcp.handlers.schema import (
-    ListSchemasHandler, CreateSchemaHandler, DescribeSchemaHandler, DropSchemaHandler
+    ListSchemasHandler, CreateSchemaHandler, DescribeSchemaHandler, DropSchemaHandler,
+    ListTablesHandler, DescribeTableHandler
 )
 from postgres_mcp.handlers.table import (
-    ListTablesHandler, DescribeTableHandler, CreateTableHandler, 
-    AlterTableHandler, DropTableHandler, TruncateTableHandler
+    CreateTableHandler, AlterTableHandler, DropTableHandler, TruncateTableHandler
 )
 from postgres_mcp.handlers.query import (
     QueryHandler, InsertHandler, UpdateHandler, DeleteHandler, 
@@ -31,7 +30,7 @@ from postgres_mcp.handlers.metrics import (
 )
 from postgres_mcp.handlers.views import (
     ListViewsHandler, DescribeViewHandler, CreateViewHandler,
-    RefreshViewHandler, DropViewHandler
+    RefreshMaterializedViewHandler, DropViewHandler
 )
 from postgres_mcp.handlers.functions import (
     ListFunctionsHandler, DescribeFunctionHandler, ExecuteFunctionHandler,
@@ -39,9 +38,8 @@ from postgres_mcp.handlers.functions import (
 )
 
 __all__ = [
-    'HandlerBase',
+    'BaseHandler',
     'HandlerRegistry',
-    'HandlerError',
     # Database Handlers
     'ListDatabasesHandler',
     'ConnectDatabaseHandler',
@@ -51,9 +49,9 @@ __all__ = [
     'CreateSchemaHandler',
     'DescribeSchemaHandler',
     'DropSchemaHandler',
-    # Table Handlers
     'ListTablesHandler',
     'DescribeTableHandler',
+    # Table Handlers
     'CreateTableHandler',
     'AlterTableHandler',
     'DropTableHandler',
@@ -85,7 +83,7 @@ __all__ = [
     'ListViewsHandler',
     'DescribeViewHandler',
     'CreateViewHandler',
-    'RefreshViewHandler',
+    'RefreshMaterializedViewHandler',
     'DropViewHandler',
     # Function Handlers
     'ListFunctionsHandler',
@@ -155,7 +153,7 @@ def register_handlers(registry: HandlerRegistry) -> HandlerRegistry:
     registry.register("list_views", ListViewsHandler)
     registry.register("describe_view", DescribeViewHandler)
     registry.register("create_view", CreateViewHandler)
-    registry.register("refresh_view", RefreshViewHandler)
+    registry.register("refresh_materialized_view", RefreshMaterializedViewHandler)
     registry.register("drop_view", DropViewHandler)
     
     # Function Handlers

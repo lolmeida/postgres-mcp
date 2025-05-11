@@ -21,4 +21,4 @@ mypy>=1.7.0
 pylint>=3.0.2
 pytest-cov>=4.1.0
 testcontainers>=4.2.0
-testcontainers-postgres>=4.2.0 
+testcontainers-postgres>=0.0.1rc1

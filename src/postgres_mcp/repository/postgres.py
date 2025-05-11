@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import uuid
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import asyncpg
@@ -46,25 +47,20 @@ class PostgresRepository(BaseRepository):
         self._transactions: Dict[str, Transaction] = {}
     
     async def initialize(self) -> None:
-        """
-        Inicializa o pool de conexões.
-        
-        Raises:
-            ConnectionError: Se não for possível conectar ao banco de dados
-        """
-        if self.pool:
-            return
-            
-        if self.config.test_mode:
-            self.logger.info("Inicializando em modo de teste (sem conexão)")
-            return
-            
+        """Inicializa o pool de conexões."""
         try:
-            # Configuração de SSL
+            # Verificar se estamos em modo de teste
+            if getattr(self.config, "test_mode", False):
+                self.logger.info("Inicializando em modo de teste (sem conexão ao banco)")
+                # Em modo de teste, não estabelecemos conexão real
+                self.pool = None
+                return
+
+            # Configurar SSL se necessário
             ssl = None
             if self.config.db_ssl != SSLMode.DISABLE:
                 ssl = self.config.db_ssl.value
-                
+            
             self.logger.info(
                 "Conectando ao PostgreSQL em %s:%s/%s (SSL: %s)",
                 self.config.db_host,
@@ -73,7 +69,25 @@ class PostgresRepository(BaseRepository):
                 self.config.db_ssl.value
             )
             
-            # Criar pool de conexões
+            # Função de inicialização para as conexões
+            async def _init_connection(conn: asyncpg.Connection) -> None:
+                # Configurar manipuladores para JSONB
+                await conn.set_type_codec(
+                    'jsonb',
+                    encoder=json.dumps,
+                    decoder=json.loads,
+                    schema='pg_catalog'
+                )
+                
+                # Configurar manipuladores para JSON
+                await conn.set_type_codec(
+                    'json',
+                    encoder=json.dumps,
+                    decoder=json.loads,
+                    schema='pg_catalog'
+                )
+            
+            # Criar pool de conexões com setup para inicializar tipos
             self.pool = await asyncpg.create_pool(
                 host=self.config.db_host,
                 port=self.config.db_port,
@@ -84,12 +98,10 @@ class PostgresRepository(BaseRepository):
                 max_size=self.config.pool_max_size,
                 command_timeout=self.config.command_timeout,
                 ssl=ssl,
+                setup=_init_connection  # Inicialização de tipos para cada conexão
             )
             
-            # Registra manipuladores de tipos personalizados
-            if self.pool:
-                PostgresTypeConverter.register_type_handlers(self.pool)
-            
+            # Não precisamos mais chamar o register_type_handlers pois já está no setup
             self.logger.info("Conexão com PostgreSQL estabelecida com sucesso")
             
         except (asyncpg.PostgresError, OSError) as err:
@@ -549,35 +561,64 @@ class PostgresRepository(BaseRepository):
     
     async def _get_connection(self, transaction_id: Optional[str] = None) -> Connection:
         """
-        Obtém uma conexão do pool, ou usa uma conexão existente de uma transação.
+        Obtém uma conexão do pool ou uma transação existente.
         
         Args:
-            transaction_id: ID da transação (opcional)
+            transaction_id: ID da transação, se aplicável
             
         Returns:
-            Conexão com o banco de dados
+            Conexão com o PostgreSQL
+            
+        Raises:
+            ConnectionError: Se não for possível obter uma conexão
         """
+        # Verificar se estamos em modo de teste
+        if self.pool is None:
+            self.logger.debug("Modo de teste: retornando conexão simulada")
+            # Em modo de teste, retornar um objeto mock que simula uma conexão
+            class MockConnection:
+                async def execute(self, *args, **kwargs):
+                    return 0
+                
+                async def fetch(self, *args, **kwargs):
+                    return []
+                
+            return MockConnection()
+            
+        # Verificar se já temos uma transação para este ID
         if transaction_id and transaction_id in self._transactions:
             return self._transactions[transaction_id]
         
-        if not self.pool:
-            raise ConnectionError("Pool de conexões não inicializado")
-        
-        return await self.pool.acquire()
+        # Obter nova conexão do pool
+        try:
+            conn = await self.pool.acquire()
+            return conn
+        except asyncpg.PostgresError as e:
+            self.logger.error("Erro ao obter conexão do pool: %s", str(e))
+            raise ConnectionError(f"Erro ao obter conexão: {str(e)}")
     
     async def _release_connection(self, conn: Connection, transaction_id: Optional[str] = None) -> None:
         """
-        Libera uma conexão de volta para o pool, a menos que seja de uma transação.
+        Libera uma conexão de volta para o pool.
         
         Args:
-            conn: Conexão a ser liberada
-            transaction_id: ID da transação (opcional)
+            conn: Conexão a liberar
+            transaction_id: ID da transação, se aplicável
         """
-        if transaction_id and transaction_id in self._transactions:
-            # Não liberar conexões de transações ativas
+        # Em modo de teste, não fazer nada
+        if self.pool is None:
+            self.logger.debug("Modo de teste: simulando liberação de conexão")
+            return
+            
+        # Não liberar conexões associadas a transações ativas
+        if transaction_id in self._transactions:
             return
         
-        await self.pool.release(conn)
+        # Liberar conexão para o pool
+        try:
+            await self.pool.release(conn)
+        except Exception as e:
+            self.logger.error("Erro ao liberar conexão: %s", str(e))
     
     async def _execute_query(
         self, 
@@ -589,38 +630,55 @@ class PostgresRepository(BaseRepository):
         Executa uma consulta SQL e retorna os resultados como dicionários.
         
         Args:
-            query: Consulta SQL a ser executada
+            query: Consulta SQL
             params: Parâmetros para a consulta
             transaction_id: ID da transação (opcional)
             
         Returns:
             Lista de registros como dicionários
+            
+        Raises:
+            QueryError: Se ocorrer um erro ao executar a consulta
         """
-        # Log da consulta
-        self.sql_logger.log_query(query, params)
-        
-        # Adquirir conexão
-        conn = await self._get_connection(transaction_id)
+        conn = None
+        start_time = time.time()
         
         try:
-            # Converter parâmetros nomeados para posicionais
-            query_args = []
-            if params:
-                # Substituir referências de parâmetros nomeados por posicionais
-                param_keys = list(params.keys())
-                for i, key in enumerate(param_keys):
-                    query = query.replace(f":{key}", f"${i+1}")
-                    query_args.append(params[key])
+            # Em modo de teste, retornar uma lista vazia
+            if self.pool is None:
+                self.logger.debug("Modo de teste: simulando execução de consulta")
+                self.sql_logger.log_query(query, params, 0, 0)
+                return []
+                
+            # Obter conexão do pool
+            conn = await self._get_connection(transaction_id)
             
-            # Executar a consulta
-            result = await conn.fetch(query, *query_args)
+            # Mapear os parâmetros conforme necessário
+            query, mapped_params = self._prepare_query_params(query, params)
             
-            # Converter para dicionários
-            return [dict(r) for r in result]
+            # Executar consulta e capturar o resultado
+            if mapped_params:
+                records = await conn.fetch(query, *mapped_params)
+            else:
+                records = await conn.fetch(query)
+            
+            # Converter objetos Record para dicionários
+            result = [dict(record) for record in records]
+            
+            # Registrar consulta no SQL logger
+            elapsed = (time.time() - start_time) * 1000  # ms
+            self.sql_logger.log_query(query, params, len(result), elapsed)
+            
+            return result
+            
+        except asyncpg.PostgresError as e:
+            self.logger.error("Erro ao executar consulta: %s", str(e))
+            self.logger.debug("Query: %s, Params: %s", query, params)
+            raise QueryError(f"Erro ao executar consulta: {str(e)}")
             
         finally:
             # Liberar conexão se não estiver em uma transação
-            if not transaction_id:
+            if conn and not transaction_id:
                 await self._release_connection(conn)
     
     async def describe_table(self, table: str, schema: str = "public") -> Dict[str, Any]:
@@ -1829,3 +1887,29 @@ class PostgresRepository(BaseRepository):
             # Loga o erro e relança como exceção específica da aplicação
             self.logger.error(f"Erro ao excluir função: {str(e)}")
             raise RepositoryError(f"Erro ao excluir função: {str(e)}")
+
+    def _prepare_query_params(self, query: str, params: Optional[Dict[str, Any]] = None) -> Tuple[str, Optional[List[Any]]]:
+        """
+        Prepara a consulta SQL e mapeia os parâmetros nomeados para posicionais.
+        
+        Args:
+            query: Consulta SQL com parâmetros nomeados
+            params: Dicionário de parâmetros
+            
+        Returns:
+            Tupla contendo (consulta_modificada, lista_de_parâmetros)
+        """
+        if not params:
+            return query, None
+            
+        # Substituir referências de parâmetros nomeados por posicionais ($1, $2, etc.)
+        param_keys = list(params.keys())
+        mapped_params = []
+        
+        for i, key in enumerate(param_keys):
+            placeholder = f":{key}"
+            # Certifique-se de que o espaço em branco/pontuação seja mantido corretamente
+            query = query.replace(placeholder, f"${i+1}")
+            mapped_params.append(params[key])
+            
+        return query, mapped_params

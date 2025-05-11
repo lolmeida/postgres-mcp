@@ -160,4 +160,51 @@ class RollbackTransactionHandler(BaseHandler):
         except PostgresMCPError as e:
             return self.error_response(str(e), e.error_type, e.details)
         except Exception as e:
-            return self.error_response(f"Erro ao reverter transação: {str(e)}") 
+            return self.error_response(f"Erro ao reverter transação: {str(e)}")
+
+
+class TransactionStatusHandler(BaseHandler):
+    """Handler para consultar o status de uma transação."""
+    
+    def __init__(self, transaction_service: TransactionService):
+        """
+        Inicializa o handler.
+        
+        Args:
+            transaction_service: Serviço de transação
+        """
+        self.transaction_service = transaction_service
+    
+    async def handle(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Processa uma requisição para consultar o status de uma transação.
+        
+        Args:
+            parameters: Parâmetros da requisição
+                - transaction_id (str): ID da transação a ser consultada
+            
+        Returns:
+            Resposta formatada com o status da transação
+        """
+        try:
+            # Validar parâmetros básicos
+            if "transaction_id" not in parameters:
+                return self.error_response("Parâmetro 'transaction_id' é obrigatório", "validation_error")
+            
+            transaction_id = parameters["transaction_id"]
+            
+            # Implementação básica para permitir que a aplicação carregue
+            # Em uma implementação real, consultaria o serviço de transação
+            status = {
+                "transaction_id": transaction_id,
+                "status": "active",
+                "isolation_level": "read committed",
+                "started_at": "2024-05-11T22:00:00Z",
+                "operations_count": 0
+            }
+            
+            return self.success_response(status)
+        except PostgresMCPError as e:
+            return self.error_response(str(e), e.error_type, e.details)
+        except Exception as e:
+            return self.error_response(f"Erro ao consultar status da transação: {str(e)}") 

@@ -6,7 +6,7 @@ import logging
 from typing import Any, Dict
 
 from postgres_mcp.core.exceptions import HandlerError
-from postgres_mcp.handlers.base import HandlerBase
+from postgres_mcp.handlers.base import BaseHandler
 from postgres_mcp.models.requests import (
     CreateFunctionRequest, DescribeFunctionRequest, DropFunctionRequest,
     ExecuteFunctionRequest, ListFunctionsRequest
@@ -14,7 +14,7 @@ from postgres_mcp.models.requests import (
 from postgres_mcp.models.response import DataResponse, ErrorResponse
 
 
-class ListFunctionsHandler(HandlerBase):
+class ListFunctionsHandler(BaseHandler):
     """Handler para listagem de funções."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -59,7 +59,7 @@ class ListFunctionsHandler(HandlerBase):
             ).model_dump()
 
 
-class DescribeFunctionHandler(HandlerBase):
+class DescribeFunctionHandler(BaseHandler):
     """Handler para descrição de função."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -103,7 +103,7 @@ class DescribeFunctionHandler(HandlerBase):
             ).model_dump()
 
 
-class ExecuteFunctionHandler(HandlerBase):
+class ExecuteFunctionHandler(BaseHandler):
     """Handler para execução de função."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -149,7 +149,7 @@ class ExecuteFunctionHandler(HandlerBase):
             ).model_dump()
 
 
-class CreateFunctionHandler(HandlerBase):
+class CreateFunctionHandler(BaseHandler):
     """Handler para criação de função."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -201,7 +201,7 @@ class CreateFunctionHandler(HandlerBase):
             ).model_dump()
 
 
-class DropFunctionHandler(HandlerBase):
+class DropFunctionHandler(BaseHandler):
     """Handler para exclusão de função."""
     
     async def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:

@@ -63,13 +63,16 @@ class SQLLogger:
         self.logger = logger
         self.enabled = enabled
     
-    def log_query(self, query: str, params: Optional[dict] = None) -> None:
+    def log_query(self, query: str, params: Optional[dict] = None, 
+                 record_count: Optional[int] = None, elapsed_ms: Optional[float] = None) -> None:
         """
         Loga uma consulta SQL.
         
         Args:
             query: A consulta SQL
             params: Parâmetros da consulta (opcional)
+            record_count: Número de registros retornados (opcional)
+            elapsed_ms: Tempo de execução em milissegundos (opcional)
         """
         if not self.enabled:
             return
@@ -77,11 +80,19 @@ class SQLLogger:
         # Sanitiza a consulta para remover credenciais
         sanitized_query = self._sanitize_query(query)
         
-        # Loga a consulta
+        # Formata mensagem base
+        msg = f"Executing SQL: {sanitized_query}"
+        
+        # Adiciona informações de parâmetros
         if params:
-            self.logger.debug("Executing SQL: %s with params: %s", sanitized_query, self._sanitize_params(params))
-        else:
-            self.logger.debug("Executing SQL: %s", sanitized_query)
+            msg += f" with params: {self._sanitize_params(params)}"
+        
+        # Adiciona informações de performance, se disponíveis
+        if record_count is not None and elapsed_ms is not None:
+            msg += f" | {record_count} records in {elapsed_ms:.2f}ms"
+        
+        # Loga a mensagem
+        self.logger.debug(msg)
     
     def _sanitize_query(self, query: str) -> str:
         """

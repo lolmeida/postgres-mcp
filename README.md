@@ -1,6 +1,96 @@
 # PostgreSQL MCP
 
-PostgreSQL MCP é uma implementação do Model Context Protocol (MCP) para permitir que Modelos de Linguagem Grandes (LLMs) interajam diretamente com bancos de dados PostgreSQL.
+PostgreSQL Model Context Protocol (MCP) para integração com LLMs.
+
+## 📋 Requisitos
+
+- Docker
+- Docker Compose
+
+## 🚀 Início Rápido com Docker
+
+A maneira mais fácil de executar o PostgreSQL MCP é usando Docker Compose, que gerencia tanto o banco de dados PostgreSQL quanto o servidor MCP.
+
+### 1. Iniciar os serviços
+
+```bash
+./run-mcp.sh start
+```
+
+Este comando inicia o PostgreSQL e o servidor MCP. O PostgreSQL estará disponível na porta 5432 e o servidor MCP na porta 8432.
+
+### 2. Verificar o status dos serviços
+
+```bash
+./run-mcp.sh ps
+```
+
+### 3. Visualizar logs
+
+```bash
+./run-mcp.sh logs
+```
+
+### 4. Testar a conexão com o MCP
+
+```bash
+./run-mcp.sh test
+```
+
+### 5. Parar os serviços
+
+```bash
+./run-mcp.sh stop
+```
+
+## 🔄 Integração com o Cursor
+
+Para configurar o Cursor para usar o PostgreSQL MCP:
+
+1. Inicie os serviços Docker:
+   ```bash
+   ./run-mcp.sh start
+   ```
+
+2. Configure o Cursor:
+   ```bash
+   ./run-mcp.sh setup-cursor
+   ```
+
+3. Reinicie o Cursor.
+
+4. Nas configurações do Cursor, vá para a seção MCP e verifique se o servidor "postgres" está habilitado.
+
+## 🛠️ Desenvolvimento Local
+
+Para desenvolvimento local sem Docker:
+
+1. Configure um ambiente virtual Python:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   pip install -e .
+   ```
+
+2. Inicie o PostgreSQL:
+   ```bash
+   docker start postgres-mcp
+   ```
+
+3. Inicie o servidor MCP:
+   ```bash
+   python -m postgres_mcp --db-host=localhost --db-port=5432 --db-name=postgres --db-user=postgres --db-password=postgres --mode=http --port=8432
+   ```
+
+## 📚 Referências
+
+- [Documentação do MCP](https://cursor.sh/docs/mcp)
+- [PostgreSQL](https://www.postgresql.org/docs/)
+
+## 📝 Licença
+
+Este projeto é licenciado sob os termos da licença MIT.
 
 ## Status do Projeto
 

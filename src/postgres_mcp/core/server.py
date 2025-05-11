@@ -10,9 +10,8 @@ import signal
 import sys
 from typing import Any, Dict, List, Optional, Type, Union
 
-from fastmcp import MCPServer as FastMCPServer
-from fastmcp import Request as MCPRequest
-from fastmcp import Response as MCPResponse
+from fastmcp import FastMCP
+from mcp.types import Request, JSONRPCResponse
 from pydantic import ValidationError as PydanticValidationError
 
 from postgres_mcp.core.config import LogLevel, MCPMode, PostgresMCPConfig
@@ -192,7 +191,7 @@ class PostgresMCP:
         
         # Flag para controle de estado
         self.running = False
-        self.mcp_server: Optional[FastMCPServer] = None
+        self.mcp_server: Optional[FastMCP] = None
     
     def _get_version(self) -> str:
         """Retorna a versão atual do PostgreSQL MCP."""
@@ -377,36 +376,29 @@ class PostgresMCP:
         
         self.logger.info("Handlers inicializados e registrados")
     
-    async def _handle_request(self, request: MCPRequest) -> MCPResponse:
+    async def _handle_request(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processa uma requisição MCP.
         
         Args:
-            request: Requisição MCP
+            name: Nome da ferramenta (ignorado, usamos FastMCP apenas como ponte)
+            arguments: Argumentos da requisição
             
         Returns:
-            Resposta MCP
+            Resposta formatada
         """
         try:
-            # Converter requisição para dicionário
-            request_dict = json.loads(request.json_data)
-            
-            # Rotear para o handler apropriado
-            response_dict = await self.router.route(request_dict)
-            
-            # Converter resposta para formato MCP
-            return MCPResponse(json_data=json.dumps(response_dict))
-            
-        except json.JSONDecodeError:
-            self.logger.error("Requisição inválida: JSON mal-formado")
-            error_response = {
+            # Usar os argumentos diretamente como nossa request
+            return await self.router.route(arguments)
+        except Exception as e:
+            self.logger.error("Erro ao processar requisição MCP: %s", str(e))
+            return {
                 "success": False,
                 "error": {
-                    "message": "Requisição inválida: JSON mal-formado",
-                    "type": "validation_error"
+                    "message": f"Erro ao processar requisição: {str(e)}",
+                    "type": "server_error"
                 }
             }
-            return MCPResponse(json_data=json.dumps(error_response))
     
     async def start(self) -> None:
         """
@@ -430,9 +422,20 @@ class PostgresMCP:
             # Iniciar servidor MCP de acordo com o modo
             if self.config.mode == MCPMode.STDIO:
                 self.logger.info("Iniciando PostgreSQL MCP em modo STDIO")
-                self.mcp_server = FastMCPServer(handler=self._handle_request)
+                # Criar FastMCP com nome
+                self.mcp_server = FastMCP(name="postgres-mcp")
+                
+                # Definir função de ferramenta usando decorador inline
+                @self.mcp_server.tool(
+                    name="postgres_tool",
+                    description="PostgreSQL MCP tool"
+                )
+                async def handle_postgres_request(arguments: Dict[str, Any]) -> Dict[str, Any]:
+                    return await self._handle_request("postgres_tool", arguments)
+                
                 self.running = True
-                await self.mcp_server.start_stdio()
+                # Iniciar o servidor no modo STDIO
+                await self.mcp_server.run_stdio_async()
                 
             elif self.config.mode == MCPMode.HTTP:
                 self.logger.info(
@@ -440,12 +443,49 @@ class PostgresMCP:
                     self.config.host,
                     self.config.port
                 )
-                self.mcp_server = FastMCPServer(handler=self._handle_request)
-                self.running = True
-                await self.mcp_server.start_http(
-                    host=self.config.host,
-                    port=self.config.port
+                # Configurar settings para HTTP
+                http_settings = {
+                    "host": self.config.host,
+                    "port": self.config.port,
+                    "debug": getattr(self.config, "debug", False)
+                }
+                
+                # Criar FastMCP com nome e configurações HTTP
+                self.mcp_server = FastMCP(name="postgres-mcp", **http_settings)
+                
+                # Definir função de ferramenta usando decorador inline
+                @self.mcp_server.tool(
+                    name="postgres_tool",
+                    description="PostgreSQL MCP tool"
                 )
+                async def handle_postgres_request(arguments: Dict[str, Any]) -> Dict[str, Any]:
+                    return await self._handle_request("postgres_tool", arguments)
+                
+                self.running = True
+                
+                # Para HTTP, precisamos usar starlette/uvicorn
+                import asyncio
+                import uvicorn
+                from starlette.applications import Starlette
+                from starlette.routing import Route
+                
+                # Criar uma app Starlette para servir o MCP
+                app = Starlette(
+                    debug=getattr(self.config, "debug", False),
+                    routes=[
+                        Route("/", endpoint=self._handle_http_request, methods=["POST"])
+                    ]
+                )
+                
+                # Configurar uvicorn para servir a app
+                config = uvicorn.Config(
+                    app=app,
+                    host=self.config.host,
+                    port=self.config.port,
+                    log_level="info" if not getattr(self.config, "debug", False) else "debug"
+                )
+                server = uvicorn.Server(config)
+                await server.serve()
                 
             else:
                 raise ValueError(f"Modo de transporte não suportado: {self.config.mode}")
@@ -454,6 +494,39 @@ class PostgresMCP:
             self.logger.exception("Erro ao iniciar PostgreSQL MCP: %s", str(e))
             await self.stop()
             raise
+    
+    async def _handle_http_request(self, request):
+        """
+        Processa uma requisição HTTP.
+        
+        Args:
+            request: Requisição HTTP do Starlette
+            
+        Returns:
+            Resposta HTTP
+        """
+        from starlette.responses import JSONResponse
+        
+        try:
+            # Converter requisição HTTP para requisição MCP
+            request_body = await request.json()
+            
+            # Rotear para o handler apropriado
+            response_dict = await self.router.route(request_body)
+            
+            # Retornar resposta JSON
+            return JSONResponse(response_dict)
+            
+        except Exception as e:
+            self.logger.error("Erro ao processar requisição HTTP: %s", str(e))
+            error_response = {
+                "success": False,
+                "error": {
+                    "message": f"Erro ao processar requisição: {str(e)}",
+                    "type": "server_error"
+                }
+            }
+            return JSONResponse(error_response, status_code=500)
     
     async def stop(self) -> None:
         """

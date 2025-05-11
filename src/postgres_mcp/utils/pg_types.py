@@ -283,8 +283,18 @@ class PostgresTypeConverter:
             
             # Outras configurações de tipos personalizados podem ser adicionadas aqui
         
-        # Registra a função de inicialização para ser executada em cada conexão
-        connection_pool.init(init=_init_connection)
+        # O método correto para inicializar conexões no pool
+        # 'init' não existe na API do asyncpg.Pool, mas o pool pode ser 
+        # configurado diretamente no momento da criação com setup=_init_connection
+        # Aqui, apenas registramos a função para uso futuro
+        if hasattr(connection_pool, 'init'):
+            # Usar init se disponível (implementação específica)
+            connection_pool.init(init=_init_connection)
+        else:
+            # Em versões atuais do asyncpg, a função setup é passada durante a criação do pool
+            # Vamos registrar a função para uso no repository.py
+            if not hasattr(connection_pool, '_setup_func'):
+                setattr(connection_pool, '_setup_func', _init_connection)
     
     @staticmethod
     async def register_type_handlers_on_connection(conn: asyncpg.Connection) -> None:
