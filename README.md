@@ -31,9 +31,27 @@ Testes implementados:
 - Testes abrangentes para o sistema de filtros
 - Testes para o QueryBuilder com suporte a múltiplos operadores
 - Testes para serialização/deserialização MCP
+- Testes de integração (estrutura implementada, execução com limitações)
+
+### Status dos Testes de Integração
+
+Os testes de integração foram implementados com estrutura completa e abrangente, incluindo:
+- Configuração automatizada de contêiner Docker PostgreSQL 
+- Scripts de inicialização de banco de dados
+- Testes para operações CRUD
+- Testes para transações
+- Testes para filtros e recursos PostgreSQL avançados
+
+Entretanto, os testes de integração enfrentam alguns desafios técnicos:
+1. Incompatibilidade na interface da classe PostgresMCP
+2. Problemas com inicialização de serviços em ambiente de teste
+3. Incompatibilidade de parâmetros entre testes e implementação atual
+
+Estamos trabalhando para resolver esses problemas. Para mais detalhes, consulte `tests/integration/README.md`.
 
 Próximos desenvolvimentos:
-- Testes de integração com Testcontainers
+- Resolver limitações dos testes de integração
+- Implementar testes de desempenho
 - Testes end-to-end para operações completas
 - Otimizações adicionais de desempenho
 - Documentação expandida de deployment

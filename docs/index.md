@@ -67,6 +67,21 @@ O projeto inclui uma suíte abrangente de testes:
 - **Testes de Filtros**: Validação de todos os modelos de filtro e conversão para SQL
 - **Testes do QueryBuilder**: Verificação da geração correta de consultas SQL com filtros complexos
 - **Testes de Serialização/Deserialização**: Validação da comunicação via MCP
+- **Testes de Integração**: Testes com banco de dados PostgreSQL real usando Docker
+
+### Testes de Integração
+
+Os testes de integração estão implementados e utilizam contêineres Docker para executar instâncias isoladas do PostgreSQL. Eles abrangem:
+- Operações CRUD completas
+- Transações (commit, rollback, isolamento)
+- Sistema de filtros com dados reais
+- Recursos específicos do PostgreSQL (views, funções, CTEs)
+
+No entanto, os testes de integração atualmente enfrentam alguns desafios técnicos, incluindo:
+- Incompatibilidades de interface com a implementação atual do PostgresMCP
+- Problemas na inicialização de serviços em ambiente de teste
+
+Estamos trabalhando para resolver essas limitações. Para mais detalhes, consulte o arquivo [INTEGRATION_TESTS_PLAN.md](../INTEGRATION_TESTS_PLAN.md).
 
 Além disso, o projeto segue boas práticas de desenvolvimento:
 - Docstrings completas em todas as funções e classes
