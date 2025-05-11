@@ -8,10 +8,10 @@ from typing import Any, Dict, List, Optional
 from postgres_mcp.core.exceptions import ServiceError
 from postgres_mcp.models.base import FunctionInfo
 from postgres_mcp.repository.postgres import PostgresRepository
-from postgres_mcp.services.base import ServiceBase
+from postgres_mcp.services.base import BaseService
 
 
-class FunctionService(ServiceBase):
+class FunctionService(BaseService):
     """
     Serviço para gerenciamento de funções e procedimentos armazenados PostgreSQL.
     

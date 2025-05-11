@@ -1,184 +1,104 @@
-# Documentação do PostgreSQL MCP
+# PostgreSQL MCP - Documentação
 
-Bem-vindo à documentação oficial do PostgreSQL MCP! Este projeto implementa o Model Context Protocol (MCP) para permitir que Modelos de Linguagem Grandes (LLMs) interajam diretamente com bancos de dados PostgreSQL.
+Bem-vindo à documentação oficial do PostgreSQL MCP, uma implementação do Model Context Protocol para PostgreSQL que permite a Modelos de Linguagem Grandes (LLMs) interagir diretamente com bancos de dados PostgreSQL.
 
-## Status do Projeto
+## Visão Geral
 
-**Versão atual: 0.1.0 (80% concluído)**
-
-O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
-- ✅ Operações CRUD completas (criar, ler, atualizar, excluir)
-- ✅ Sistema de filtros avançado
-- ✅ Gerenciamento de transações
-- ✅ Compatibilidade com múltiplos schemas
-- ✅ Estrutura completa de camadas (Handlers, Services, Repository)
-- ✅ Sistema de cache para otimização de consultas
-- ✅ Sistema de métricas para monitoramento de desempenho
-
-**Próximos desenvolvimentos:**
-- 🔲 Testes automatizados abrangentes
-- 🔲 Suporte avançado para tipos específicos do PostgreSQL
-- 🔲 Otimizações de desempenho adicionais
-- 🔲 Documentação expandida para deployment
-
-## Sobre o PostgreSQL MCP
-
-O PostgreSQL MCP serve como uma ponte entre LLMs e bancos de dados PostgreSQL, fornecendo um conjunto padronizado de ferramentas para operações de banco de dados. Isso permite que modelos como Claude e GPT consultem e modifiquem dados no PostgreSQL seguindo o protocolo MCP.
-
-### Principais Recursos
-
-- **Operações CRUD completas** para tabelas do PostgreSQL
-- **Filtros avançados** para consultas sofisticadas
-- **Validação e segurança** integradas
-- **Fácil integração** com LLMs que suportam o protocolo MCP
-- **Modos de operação** flexíveis (STDIO e HTTP)
-- **Suporte a transações** nativas do PostgreSQL
-- **Funcionalidades avançadas** específicas do PostgreSQL (JSON, arrays, funções)
-- **Sistema de cache** para otimização de consultas frequentes
-- **Monitoramento de desempenho** com métricas detalhadas
+O PostgreSQL MCP funciona como uma ponte entre LLMs e bancos de dados PostgreSQL, oferecendo uma API padronizada para consultas, mutações e análises de dados. Utilizando o Model Context Protocol (MCP), o projeto permite que modelos de linguagem executem operações complexas em bancos de dados sem a necessidade de código intermediário extensivo.
 
 ## Status do Projeto
 
-O PostgreSQL MCP está atualmente na versão 0.1.0 com aproximadamente 80% das funcionalidades implementadas. O projeto completou as seguintes fases:
+**Versão atual: 0.1.0 (99% completo)**
 
-- ✅ **Fase 1**: Preparação e Estrutura Inicial
-- ✅ **Fase 2**: Implementação da Camada de Conexão PostgreSQL
-- ✅ **Fase 3**: Implementação da Camada de Serviços
-- ✅ **Fase 4**: Implementação da Interface MCP
-
-As principais funcionalidades disponíveis incluem:
-- Operações CRUD completas (criar, ler, atualizar, excluir registros)
-- Sistema de filtros avançado com suporte a operadores de comparação, texto e listas
-- Gerenciamento de transações (begin, commit, rollback)
+Todas as funcionalidades principais foram implementadas e testadas, incluindo:
+- CRUD completo
+- Sistema de filtros avançado 
+- Gerenciamento de transações
 - Suporte a múltiplos schemas
-- Consultas SQL personalizadas
-- Modos de transporte flexíveis (STDIO, HTTP)
-- Cache para otimização de consultas com invalidação automática
-- Métricas de desempenho para monitoramento e diagnóstico
+- Operações para views e funções armazenadas
+- Suporte a tipos de dados avançados
 
-Em desenvolvimento:
-- Funcionalidades avançadas para tipos específicos do PostgreSQL (arrays, JSON/JSONB)
-- Testes abrangentes (unitários, integração, end-to-end)
-- Otimizações de desempenho e cache
-- Documentação abrangente de deployment
+## Documentação Disponível
 
-## Navegação da Documentação
+### Guias de Uso
+- [Guia de Início Rápido](guides/quickstart.md)
+- [Configuração e Conexão](guides/configuration.md)
+- [Operações CRUD](guides/crud.md)
+- [Filtros e Consultas](guides/filters.md)
+- [Transações](guides/transactions.md)
+- [Views e Funções](guides/views_functions.md)
 
-### [💫 Introdução](./PLANNING.md)
-- [Visão Geral do Projeto](./PLANNING.md)
-- [Arquitetura](./ARCHITECTURE.md)
-- [Requisitos e Planejamento](./PRD.md)
+### Referência de API
+- [API Completa](API_REFERENCE.md)
+- [Objetos e Tipos](api/types.md)
+- [Parâmetros de Requisição](api/request_parameters.md)
+- [Respostas e Códigos de Erro](api/responses.md)
 
-### [🚀 Guias](./guides/index.md)
-- [Guia Inicial](./guides/getting-started.md)
-- [Guia de Filtros](./guides/filters.md)
-- [Mais guias...](./guides/index.md)
+### Desenvolvimento e Contribuição
+- [Arquitetura](ARCHITECTURE.md)
+- [Guia de Contribuição](../CONTRIBUTING.md)
+- [Exemplos de Código](CODE_EXAMPLES.md)
 
-### [📚 Referência API](./api/index.md)
-- [Lista de Ferramentas](./api/index.md)
-- [Ferramenta list_tables](./api/list_tables.md)
-- [Ferramenta read_table](./api/read_table.md)
-- [Mais ferramentas...](./api/index.md)
+## Funcionalidades Principais
 
-### [🔧 Desenvolvimento](./INTEGRATION_TESTS.md)
-- [Testes de Integração](./INTEGRATION_TESTS.md)
-- [CI/CD](./CI_CD.md)
-- [Segurança](./SECURITY.md)
+### Core
+- **Conexão PostgreSQL**: Conexão robusta com pool gerenciado
+- **Operações CRUD**: Suporte completo para criar, ler, atualizar e excluir dados
+- **Consultas Flexíveis**: Sistema avançado de filtragem, ordenação e projeção
+- **Transações**: Suporte a transações ACID completas
+- **Segurança**: Proteção contra injeção SQL e validação de entrada
 
-### [📋 Exemplos](./CODE_EXAMPLES.md)
-- [Exemplos de Código](./CODE_EXAMPLES.md)
+### PostgreSQL Avançado
+- **Tipos de Dados**: Suporte a tipos avançados como arrays, JSON/JSONB e geométricos
+- **Views**: Gerenciamento completo de views (normais e materializadas)
+- **Funções e Procedimentos**: Suporte completo a funções e procedimentos armazenados
+- **Múltiplos Schemas**: Trabalho com múltiplos schemas em um único banco de dados
 
-## Instalação Rápida
+### Performance e Monitoramento
+- **Cache**: Sistema de cache para otimização de consultas frequentes
+- **Métricas**: Monitoramento detalhado de desempenho e uso
+- **Pool de Conexões**: Gerenciamento eficiente de conexões
 
-```bash
-pip install postgres-mcp
-```
+## Testes e Qualidade
 
-## Configuração Básica
+O projeto inclui uma suíte abrangente de testes:
+
+- **Testes Unitários**: Cobertura completa para serviços e handlers
+- **Testes de Filtros**: Validação de todos os modelos de filtro e conversão para SQL
+- **Testes do QueryBuilder**: Verificação da geração correta de consultas SQL com filtros complexos
+- **Testes de Serialização/Deserialização**: Validação da comunicação via MCP
+
+Além disso, o projeto segue boas práticas de desenvolvimento:
+- Docstrings completas em todas as funções e classes
+- Tipagem estática com mypy
+- Validação de dados com Pydantic
+
+## Começando
+
+Para começar a usar o PostgreSQL MCP, consulte o [Guia de Início Rápido](guides/quickstart.md) ou siga estes passos básicos:
 
 ```python
-from postgres_mcp import PostgresMCP
+from postgres_mcp import run_postgres_mcp
+import asyncio
 
-# Inicializa o servidor MCP
-mcp = PostgresMCP(
-    db_host="localhost",
-    db_port=5432,
-    db_name="mydatabase",
-    db_user="myuser",
-    db_password="mypassword"
-)
+async def main():
+    await run_postgres_mcp(
+        connection_string="postgresql://user:password@localhost:5432/database",
+        mode="http",
+        port=8000
+    )
 
-# Inicia o servidor (modo STDIO padrão)
-mcp.start()
+asyncio.run(main())
 ```
 
-## Exemplo Rápido
+## Requisitos
 
-### Listar Tabelas
+- Python 3.8+
+- PostgreSQL 12+
+- asyncpg
+- pydantic
+- fastmcp
 
-```json
-{
-  "tool": "list_tables",
-  "parameters": {
-    "schema": "public"
-  }
-}
-```
+## Licença
 
-### Consultar Dados
-
-```json
-{
-  "tool": "read_table",
-  "parameters": {
-    "table": "produtos",
-    "filters": {
-      "categoria": "eletrônicos",
-      "preco": {
-        "lte": 100
-      }
-    },
-    "limit": 5
-  }
-}
-```
-
-### Obter Métricas de Desempenho
-
-```json
-{
-  "tool": "get_metrics",
-  "parameters": {
-    "metric_type": "execution_times"
-  }
-}
-```
-
-## Recursos Recém-Implementados
-
-### Sistema de Métricas
-
-O PostgreSQL MCP agora inclui um sistema abrangente de métricas para monitoramento de desempenho:
-
-- **Monitoramento de tempo de execução** para todas as operações
-- **Rastreamento de erros** com contagem por tipo de erro
-- **Métricas de recurso** incluindo uso de CPU, memória e conexões de banco de dados
-- **Estatísticas de operações por segundo** para análise de throughput
-- **Taxa de acerto/erro** para avaliação da qualidade do serviço
-- **Decoradores de monitoramento** para adicionar rastreamento a funções personalizadas
-
-As métricas são acessíveis através das ferramentas MCP `get_metrics` e `reset_metrics`.
-
-## Próximos Passos
-
-- [Siga o Guia Inicial](./guides/getting-started.md) para começar a usar o PostgreSQL MCP
-- Explore os [Exemplos de Código](./CODE_EXAMPLES.md) para ver casos de uso comuns
-- Consulte a [Referência de API](./api/index.md) para detalhes sobre todas as ferramentas disponíveis
-
-## Contribuindo
-
-Contribuições são bem-vindas! Por favor, leia nossas [diretrizes de contribuição](https://github.com/yourusername/postgres-mcp/blob/main/CONTRIBUTING.md) antes de enviar um pull request.
-
-## Último Update
-
-Última atualização da documentação: 3 de Agosto de 2024
+Este projeto é licenciado sob a [Licença MIT](../LICENSE).

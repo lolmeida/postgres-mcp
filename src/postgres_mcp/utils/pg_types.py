@@ -54,7 +54,8 @@ class PostgresTypeConverter:
             elif isinstance(elem, dict):
                 # Converter dicionário para JSONB
                 json_str = json.dumps(elem)
-                elements.append(f'"{json_str.replace("\"", "\\\"")}"')
+                escaped_json = json_str.replace('"', '\\"')
+                elements.append(f'"{escaped_json}"')
             else:
                 # Tentar converter para string como último recurso
                 elements.append(f'"{str(elem)}"')
