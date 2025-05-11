@@ -263,6 +263,21 @@ class BaseRepository(abc.ABC):
         
         Args:
             transaction_id: ID da transação a ser revertida
-            savepoint: Nome do savepoint para reversão parcial
+            savepoint: Nome do savepoint para o qual reverter (opcional)
+        """
+        pass
+    
+    @abc.abstractmethod
+    async def get_pool_stats(self) -> Dict[str, Any]:
+        """
+        Retorna estatísticas do pool de conexões.
+        
+        Returns:
+            Dicionário com estatísticas como:
+            - total_connections: Total de conexões no pool
+            - used_connections: Conexões em uso
+            - idle_connections: Conexões ociosas
+            - min_size: Tamanho mínimo do pool
+            - max_size: Tamanho máximo do pool
         """
         pass

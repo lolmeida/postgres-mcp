@@ -17,6 +17,9 @@ from postgres_mcp.handlers.transaction import (
 from postgres_mcp.handlers.cache import (
     GetCacheStatsHandler, ClearCacheHandler
 )
+from postgres_mcp.handlers.metrics import (
+    GetMetricsHandler, ResetMetricsHandler
+)
 
 __all__ = [
     'BaseHandler',
@@ -33,5 +36,7 @@ __all__ = [
     'CommitTransactionHandler',
     'RollbackTransactionHandler',
     'GetCacheStatsHandler',
-    'ClearCacheHandler'
+    'ClearCacheHandler',
+    'GetMetricsHandler',
+    'ResetMetricsHandler'
 ] 

@@ -36,7 +36,7 @@ A implementação atual (versão 0.1.0) do PostgreSQL MCP concluiu com sucesso a
 ### Componentes Implementados:
 - **Interface MCP**: Implementação completa de MCPServer e MCPRouter com suporte a STDIO e HTTP
 - **Handlers**: Todos os handlers principais foram implementados, incluindo operações de esquema, CRUD e transações
-- **Serviços**: Implementação completa de TableService, SchemaService, QueryService e TransactionService
+- **Serviços**: Implementação completa de TableService, SchemaService, QueryService, TransactionService, CacheService e MetricsService
 - **Repositório**: Implementação completa de PostgresRepository com suporte a todas as operações básicas e avançadas
 - **Filtros**: Sistema de filtros robusto para consultas avançadas
 
@@ -74,6 +74,10 @@ A implementação atual (versão 0.1.0) do PostgreSQL MCP concluiu com sucesso a
   - `DeleteRecordsHandler`
   - `ExecuteQueryHandler` (específico do PostgreSQL)
   - `ListSchemasHandler` (específico do PostgreSQL)
+  - `GetCacheStatsHandler` (gerenciamento de cache)
+  - `ClearCacheHandler` (gerenciamento de cache)
+  - `GetMetricsHandler` (monitoramento de desempenho)
+  - `ResetMetricsHandler` (monitoramento de desempenho)
 
 **Padrões**:
 - Command Pattern para processamento de requisições
@@ -90,10 +94,13 @@ A implementação atual (versão 0.1.0) do PostgreSQL MCP concluiu com sucesso a
 - `SecurityService`: Gerencia aspectos de segurança e permissões
 - `TransactionService`: Gerencia transações do PostgreSQL
 - `SchemaService`: Gerencia operações relacionadas a schemas (específico do PostgreSQL)
+- `CacheService`: Gerencia cache de consultas e metadados
+- `MetricsService`: Monitora e analisa métricas de desempenho do sistema
 
 **Padrões**:
 - Serviços stateless
 - Uso de interfaces para desacoplamento
+- Decoradores para instrumentação de métricas
 
 ### 4. Camada de Repositório
 
@@ -138,6 +145,12 @@ RequestBase
   ├─ SchemaRequest
   │    ├─ ListTablesRequest
   │    └─ ListSchemasRequest
+  ├─ CacheRequest
+  │    ├─ GetCacheStatsRequest
+  │    └─ ClearCacheRequest
+  ├─ MetricsRequest
+  │    ├─ GetMetricsRequest
+  │    └─ ResetMetricsRequest
   └─ QueryRequest
        └─ ExecuteQueryRequest
 ```
@@ -248,10 +261,57 @@ Acesso a recursos específicos do PostgreSQL:
      - Metadados de tabelas e schemas
    - Estratégia TTL (Time to Live) configurável
    - Mecanismos de invalidação automática em operações de escrita
-   - Diferentes níveis de cache (table, schema, metadata)
-   - Estatísticas de uso de cache (hits, misses, taxa de acerto)
-   - API para limpeza manual do cache (total, por schema ou por tabela)
-   - Integração transparente com os serviços existentes
+
+## Sistema de Métricas
+
+### Arquitetura do MetricsService
+
+O MetricsService é um componente central para monitoramento e diagnóstico de desempenho em todo o sistema PostgreSQL MCP. Foi projetado para coletar, armazenar e analisar métricas de desempenho sem impacto significativo na performance do sistema principal.
+
+#### Componentes do Sistema de Métricas:
+
+1. **Núcleo de Coleta de Métricas**
+   - Rastreamento de tempos de execução para operações
+   - Contagem de operações por tipo
+   - Registro de erros e exceções
+   - Monitoramento de recursos do sistema (CPU, memória, conexões)
+
+2. **Decoradores de Instrumentação**
+   - `track_execution_time`: Decorador para medir o tempo de execução de funções síncronas e assíncronas
+   - Suporte a amostragem configurável para reduzir sobrecarga em ambientes de produção
+
+3. **Armazenamento de Métricas**
+   - Histórico limitado por configuração para evitar consumo excessivo de memória
+   - Thread-safe para ambientes com múltiplas threads/tarefas assíncronas
+   - Mecanismos de rotação para dados históricos
+
+4. **Análise Estatística**
+   - Cálculo de estatísticas em tempo real (mín, máx, média, mediana, percentis)
+   - Análise de tendências temporais
+   - Cálculo de taxas de erro e throughput
+
+5. **Monitoramento de Recursos**
+   - Integração com `psutil` para métricas do sistema operacional
+   - Monitoramento do pool de conexões PostgreSQL
+   - Monitoramento do uso de cache
+
+#### Fluxo de Dados de Métricas:
+
+1. Instrumentação aplicada às operações críticas através de decoradores
+2. Métricas coletadas e armazenadas em estruturas thread-safe
+3. Intervalos de amostragem aplicados para reduzir sobrecarga
+4. Análise estatística realizada sob demanda
+5. Métricas expostas através dos handlers MCP para consulta
+
+#### Benefícios do Sistema de Métricas:
+
+- **Diagnóstico de Problemas**: Identificação rápida de operações lentas
+- **Otimização de Performance**: Dados para guiar otimizações
+- **Análise de Padrões de Uso**: Compreensão de como o sistema é utilizado
+- **Planejamento de Capacidade**: Dados para prever necessidades futuras
+- **Monitoramento de Saúde**: Visibilidade em tempo real da saúde do sistema
+
+O MetricsService é integrado com outros componentes do sistema através de injeção de dependência, permitindo uma instrumentação não-intrusiva e desacoplada da lógica de negócios principal.
 
 ## Considerações sobre Segurança
 

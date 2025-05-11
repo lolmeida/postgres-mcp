@@ -4,7 +4,7 @@ Bem-vindo à documentação oficial do PostgreSQL MCP! Este projeto implementa o
 
 ## Status do Projeto
 
-**Versão atual: 0.1.0 (75% concluído)**
+**Versão atual: 0.1.0 (80% concluído)**
 
 O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - ✅ Operações CRUD completas (criar, ler, atualizar, excluir)
@@ -13,12 +13,13 @@ O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - ✅ Compatibilidade com múltiplos schemas
 - ✅ Estrutura completa de camadas (Handlers, Services, Repository)
 - ✅ Sistema de cache para otimização de consultas
+- ✅ Sistema de métricas para monitoramento de desempenho
 
 **Próximos desenvolvimentos:**
 - 🔲 Testes automatizados abrangentes
 - 🔲 Suporte avançado para tipos específicos do PostgreSQL
-- 🔲 Otimizações adicionais de desempenho 
-- 🔲 Documentação expandida para casos de uso 
+- 🔲 Otimizações de desempenho adicionais
+- 🔲 Documentação expandida para deployment
 
 ## Sobre o PostgreSQL MCP
 
@@ -33,10 +34,12 @@ O PostgreSQL MCP serve como uma ponte entre LLMs e bancos de dados PostgreSQL, f
 - **Modos de operação** flexíveis (STDIO e HTTP)
 - **Suporte a transações** nativas do PostgreSQL
 - **Funcionalidades avançadas** específicas do PostgreSQL (JSON, arrays, funções)
+- **Sistema de cache** para otimização de consultas frequentes
+- **Monitoramento de desempenho** com métricas detalhadas
 
 ## Status do Projeto
 
-O PostgreSQL MCP está atualmente na versão 0.1.0 com aproximadamente 75% das funcionalidades implementadas. O projeto completou as seguintes fases:
+O PostgreSQL MCP está atualmente na versão 0.1.0 com aproximadamente 80% das funcionalidades implementadas. O projeto completou as seguintes fases:
 
 - ✅ **Fase 1**: Preparação e Estrutura Inicial
 - ✅ **Fase 2**: Implementação da Camada de Conexão PostgreSQL
@@ -50,6 +53,8 @@ As principais funcionalidades disponíveis incluem:
 - Suporte a múltiplos schemas
 - Consultas SQL personalizadas
 - Modos de transporte flexíveis (STDIO, HTTP)
+- Cache para otimização de consultas com invalidação automática
+- Métricas de desempenho para monitoramento e diagnóstico
 
 Em desenvolvimento:
 - Funcionalidades avançadas para tipos específicos do PostgreSQL (arrays, JSON/JSONB)
@@ -138,6 +143,32 @@ mcp.start()
 }
 ```
 
+### Obter Métricas de Desempenho
+
+```json
+{
+  "tool": "get_metrics",
+  "parameters": {
+    "metric_type": "execution_times"
+  }
+}
+```
+
+## Recursos Recém-Implementados
+
+### Sistema de Métricas
+
+O PostgreSQL MCP agora inclui um sistema abrangente de métricas para monitoramento de desempenho:
+
+- **Monitoramento de tempo de execução** para todas as operações
+- **Rastreamento de erros** com contagem por tipo de erro
+- **Métricas de recurso** incluindo uso de CPU, memória e conexões de banco de dados
+- **Estatísticas de operações por segundo** para análise de throughput
+- **Taxa de acerto/erro** para avaliação da qualidade do serviço
+- **Decoradores de monitoramento** para adicionar rastreamento a funções personalizadas
+
+As métricas são acessíveis através das ferramentas MCP `get_metrics` e `reset_metrics`.
+
 ## Próximos Passos
 
 - [Siga o Guia Inicial](./guides/getting-started.md) para começar a usar o PostgreSQL MCP
@@ -150,4 +181,4 @@ Contribuições são bem-vindas! Por favor, leia nossas [diretrizes de contribui
 
 ## Último Update
 
-Última atualização da documentação: 12 de Maio de 2025
+Última atualização da documentação: 3 de Agosto de 2024

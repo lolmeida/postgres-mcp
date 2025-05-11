@@ -869,33 +869,82 @@ class PostgresRepository(BaseRepository):
         
         Args:
             transaction_id: ID da transação a ser revertida
-            savepoint: Nome do savepoint para reversão parcial
+            savepoint: Nome do savepoint para o qual reverter (opcional)
             
         Raises:
-            TransactionError: Se a transação não existir ou houver erro ao reverter
+            TransactionError: Se a transação não existir ou ocorrer um erro
         """
         if transaction_id not in self._transactions:
             raise TransactionError(f"Transação não encontrada: {transaction_id}")
-        
+            
         conn = self._transactions[transaction_id]
         
         try:
-            # Reverter para um savepoint específico ou reverter toda a transação
-            if savepoint:
-                await conn.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
-                self.logger.debug("Transação revertida para savepoint %s: %s", savepoint, transaction_id)
-                return  # Manter a transação ativa após rollback para um savepoint
-            else:
-                await conn.execute("ROLLBACK")
-                self.logger.debug("Transação revertida: %s", transaction_id)
+            self.logger.debug("Revertendo transação: %s", transaction_id)
             
+            if savepoint:
+                # Reverter para um savepoint específico
+                await conn.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                self.logger.debug("Transação revertida para savepoint: %s", savepoint)
+            else:
+                # Reverter a transação inteira
+                await conn.execute("ROLLBACK")
+                
+                # Liberar a conexão
+                await self._release_connection(conn)
+                del self._transactions[transaction_id]
+                
+                self.logger.debug("Transação revertida: %s", transaction_id)
+                
         except asyncpg.PostgresError as e:
             self.logger.error("Erro ao reverter transação %s: %s", transaction_id, str(e))
             raise TransactionError(f"Erro ao reverter transação: {str(e)}")
+    
+    async def get_pool_stats(self) -> Dict[str, Any]:
+        """
+        Retorna estatísticas do pool de conexões.
+        
+        Returns:
+            Dicionário com estatísticas como:
+            - total_connections: Total de conexões no pool
+            - used_connections: Conexões em uso
+            - idle_connections: Conexões ociosas
+            - min_size: Tamanho mínimo do pool
+            - max_size: Tamanho máximo do pool
+        """
+        if not self.pool or self.config.test_mode:
+            # Retornar valores padrão em modo de teste
+            return {
+                "total_connections": 0,
+                "used_connections": 0,
+                "idle_connections": 0,
+                "min_size": self.config.pool_min_size,
+                "max_size": self.config.pool_max_size
+            }
             
-        finally:
-            # Se não for rollback para savepoint, limpar conexão
-            if not savepoint:
-                # Remover do dicionário e liberar conexão
-                del self._transactions[transaction_id]
-                await self.pool.release(conn)
+        try:
+            # Obter estatísticas do pool
+            stats = {
+                "total_connections": len(self.pool._holders),  # Total de conexões gerenciadas
+                "used_connections": len([c for c in self.pool._holders if c._con and c._in_use]),  # Conexões em uso
+                "idle_connections": len(self.pool._queue._queue),  # Conexões ociosas
+                "min_size": self.pool._minsize,
+                "max_size": self.pool._maxsize
+            }
+            
+            # Adicionar métricas de transações
+            stats["active_transactions"] = len(self._transactions)
+            
+            return stats
+            
+        except Exception as e:
+            self.logger.warning("Erro ao obter estatísticas do pool: %s", str(e))
+            # Retornar valores padrão em caso de erro
+            return {
+                "total_connections": 0,
+                "used_connections": 0,
+                "idle_connections": 0,
+                "min_size": self.config.pool_min_size,
+                "max_size": self.config.pool_max_size,
+                "active_transactions": len(self._transactions)
+            }

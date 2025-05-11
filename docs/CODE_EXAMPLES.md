@@ -676,145 +676,104 @@ def clear_cache(base_url="http://localhost:8000", scope="all", table=None, schem
         base_url: URL base do servidor MCP
         scope: Escopo da limpeza ('all', 'table', 'schema')
         table: Nome da tabela (obrigatório quando scope='table')
-        schema: Nome do schema (obrigatório quando scope='schema' ou 'table')
+        schema: Nome do schema (obrigatório quando scope='schema')
     """
-    parameters = {"scope": scope}
+    params = {"scope": scope}
     
     if scope == "table":
-        if not table:
-            raise ValueError("Parâmetro 'table' obrigatório quando scope='table'")
-        parameters["table"] = table
-        parameters["schema"] = schema
+        params["table"] = table
+        params["schema"] = schema
     elif scope == "schema":
-        parameters["schema"] = schema
-    
+        params["schema"] = schema
+        
     response = requests.post(
         base_url,
         json={
             "tool": "clear_cache",
-            "parameters": parameters
+            "parameters": params
         }
     )
     return response.json()
 
-# Exemplos de uso
+# Exemplo: limpar cache de uma tabela específica
+result = clear_cache(scope="table", table="users", schema="public")
+print(result['data']['message'])
 
-# Limpar todo o cache
+# Exemplo: limpar todo o cache
 result = clear_cache()
-print(result['data']['message'])
-
-# Limpar cache de uma tabela específica
-result = clear_cache(scope="table", table="users")
-print(result['data']['message'])
-
-# Limpar cache de um schema inteiro
-result = clear_cache(scope="schema", schema="analytics")
 print(result['data']['message'])
 ```
 
-### Fluxo Completo com Cache
+## Métricas e Monitoramento
+
+### Obter Métricas de Desempenho
 
 ```python
 import requests
-import time
 
-base_url = "http://localhost:8000"
-
-# 1. Obter estatísticas iniciais do cache
-initial_stats = requests.post(
-    base_url,
-    json={"tool": "get_cache_stats"}
-).json()
-
-print("Estatísticas iniciais do cache:")
-print(f"Hits: {initial_stats['data']['hits']}")
-print(f"Misses: {initial_stats['data']['misses']}")
-
-# 2. Fazer uma consulta - primeiro acesso (miss)
-start_time = time.time()
-first_query = requests.post(
-    base_url,
-    json={
-        "tool": "read_table",
-        "parameters": {
-            "table": "products",
-            "limit": 100
+def get_metrics(base_url="http://localhost:8000", metric_type=None, operation=None, window_seconds=60):
+    """
+    Obtém métricas de desempenho do sistema.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        metric_type: Tipo específico de métrica ('execution_times', 'errors', 'resource_usage', 'operations_per_second')
+        operation: Nome da operação para filtrar (quando metric_type='execution_times')
+        window_seconds: Janela de tempo em segundos (quando metric_type='operations_per_second')
+    """
+    params = {}
+    
+    if metric_type:
+        params["metric_type"] = metric_type
+        
+        if metric_type == "execution_times" and operation:
+            params["operation"] = operation
+        elif metric_type == "operations_per_second":
+            params["window_seconds"] = window_seconds
+    
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "get_metrics",
+            "parameters": params
         }
-    }
-).json()
-first_query_time = time.time() - start_time
+    )
+    return response.json()
 
-print(f"Primeira consulta (não cacheada): {first_query_time:.4f} segundos")
-print(f"Registros retornados: {first_query['data']['count']}")
+# Exemplo: obter todas as métricas
+all_metrics = get_metrics()
+print(f"Tempo total de atividade: {all_metrics['data']['uptime_seconds']} segundos")
+print(f"Total de operações: {all_metrics['data']['total_operations']}")
+print(f"Taxa de erro: {all_metrics['data']['error_rate']:.2%}")
 
-# 3. Fazer a mesma consulta novamente - deve usar cache (hit)
-start_time = time.time()
-second_query = requests.post(
-    base_url,
-    json={
-        "tool": "read_table",
-        "parameters": {
-            "table": "products",
-            "limit": 100
-        }
-    }
-).json()
-second_query_time = time.time() - start_time
+# Exemplo: obter apenas métricas de tempo de execução
+exec_times = get_metrics(metric_type="execution_times")
+for op, stats in exec_times['data'].items():
+    print(f"{op}: min={stats['min']:.3f}s, avg={stats['avg']:.3f}s, max={stats['max']:.3f}s")
 
-print(f"Segunda consulta (cacheada): {second_query_time:.4f} segundos")
-print(f"Registros retornados: {second_query['data']['count']}")
-print(f"Melhoria de desempenho: {(first_query_time/second_query_time):.2f}x mais rápido")
+# Exemplo: obter uso de recursos
+resources = get_metrics(metric_type="resource_usage")
+if 'cpu_usage' in resources['data']:
+    cpu = resources['data']['cpu_usage']
+    print(f"CPU: atual={cpu['current']}%, média={cpu['avg']}%, máximo={cpu['max']}%")
+```
 
-# 4. Verificar estatísticas do cache após as consultas
-updated_stats = requests.post(
-    base_url,
-    json={"tool": "get_cache_stats"}
-).json()
+### Resetar Métricas
 
-print("\nEstatísticas atualizadas do cache:")
-print(f"Hits: {updated_stats['data']['hits']} (+{updated_stats['data']['hits'] - initial_stats['data']['hits']})")
-print(f"Misses: {updated_stats['data']['misses']} (+{updated_stats['data']['misses'] - initial_stats['data']['misses']})")
-print(f"Taxa de acerto: {updated_stats['data']['hit_ratio']}")
+```python
+import requests
 
-# 5. Limpar o cache da tabela
-clear_result = requests.post(
-    base_url,
-    json={
-        "tool": "clear_cache",
-        "parameters": {
-            "scope": "table",
-            "table": "products"
-        }
-    }
-).json()
+def reset_metrics(base_url="http://localhost:8000"):
+    """
+    Reseta todas as métricas de desempenho coletadas.
+    """
+    response = requests.post(
+        base_url,
+        json={"tool": "reset_metrics"}
+    )
+    return response.json()
 
-print(f"\nCache limpo: {clear_result['data']['message']}")
-
-# 6. Fazer a consulta novamente após limpar o cache (deve ser miss)
-start_time = time.time()
-third_query = requests.post(
-    base_url,
-    json={
-        "tool": "read_table",
-        "parameters": {
-            "table": "products",
-            "limit": 100
-        }
-    }
-).json()
-third_query_time = time.time() - start_time
-
-print(f"Consulta após limpeza do cache: {third_query_time:.4f} segundos")
-print(f"Registros retornados: {third_query['data']['count']}")
-
-# 7. Verificar estatísticas finais
-final_stats = requests.post(
-    base_url,
-    json={"tool": "get_cache_stats"}
-).json()
-
-print("\nEstatísticas finais do cache:")
-print(f"Hits: {final_stats['data']['hits']}")
-print(f"Misses: {final_stats['data']['misses']}")
-print(f"Invalidações: {final_stats['data']['invalidations']}")
+# Exemplo de uso
+result = reset_metrics()
+print(result['data']['message'])
 ```

@@ -4,7 +4,7 @@ PostgreSQL MCP é uma implementação do Model Context Protocol (MCP) para permi
 
 ## Status do Projeto
 
-Status atual: **Versão 0.1.0** (75% concluído)
+Status atual: **Versão 0.1.0** (80% concluído)
 
 O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - Operações CRUD completas (criar, ler, atualizar, excluir)
@@ -13,6 +13,7 @@ O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - Compatibilidade com múltiplos schemas
 - Modos de transporte STDIO e HTTP
 - Sistema de cache para otimização de consultas
+- Sistema de métricas para monitoramento de desempenho
 
 Próximos desenvolvimentos:
 - Suporte avançado para tipos de dados PostgreSQL específicos
@@ -33,6 +34,8 @@ O PostgreSQL MCP serve como uma ponte entre LLMs e bancos de dados PostgreSQL, f
 - **Modos de operação** flexíveis (STDIO e HTTP)
 - **Suporte a transações** nativas do PostgreSQL
 - **Funcionalidades avançadas** específicas do PostgreSQL (JSON, arrays, funções)
+- **Sistema de cache** com invalidação automática para consultas frequentes
+- **Monitoramento de métricas** para análise de desempenho em tempo real
 
 ## Instalação
 
@@ -77,6 +80,38 @@ from postgres_mcp import PostgresMCP
 mcp = PostgresMCP(mode="http", port=8000)
 mcp.start()
 ```
+
+## Recursos para Monitoramento e Desempenho
+
+### Sistema de Métricas
+
+O PostgreSQL MCP inclui um sistema abrangente de métricas para monitoramento de desempenho que rastreia:
+
+- Tempos de execução de operações
+- Contagem de erros por tipo
+- Uso de recursos do sistema (CPU, memória)
+- Utilização de conexões de banco de dados
+- Taxas de operações por segundo
+
+Acesse as métricas usando as ferramentas MCP:
+
+```json
+{
+  "tool": "get_metrics",
+  "parameters": {
+    "metric_type": "execution_times"
+  }
+}
+```
+
+### Sistema de Cache
+
+O serviço de cache otimiza consultas frequentes:
+
+- Cache baseado em TTL (Time-To-Live)
+- Invalidação automática em operações de escrita
+- Estatísticas de uso do cache
+- Suporte a limpeza seletiva do cache
 
 ## Desenvolvimento
 

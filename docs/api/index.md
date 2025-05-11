@@ -13,20 +13,22 @@ Esta seção contém a documentação detalhada de todas as ferramentas disponí
 - [read_table](./read_table.md) - Lê registros de uma tabela com suporte a filtros avançados
 - [create_record](./create_record.md) - Cria um único registro em uma tabela
 - [create_batch](./create_batch.md) - Cria múltiplos registros em uma única operação
-- [update_records](./update_records.md) - Atualiza registros que correspondem aos filtros especificados
-- [delete_records](./delete_records.md) - Exclui registros que correspondem aos filtros especificados
+- [update_records](./update_records.md) - Atualiza registros que correspondem a determinados filtros
+- [delete_records](./delete_records.md) - Exclui registros que correspondem a determinados filtros
 
-### Ferramentas de Consulta Avançada
+### Ferramentas de Consulta e Transação
 - [execute_query](./execute_query.md) - Executa uma consulta SQL personalizada
-
-### Ferramentas de Transação
-- [begin_transaction](./begin_transaction.md) - Inicia uma transação para operações subsequentes
-- [commit_transaction](./commit_transaction.md) - Confirma uma transação em andamento
-- [rollback_transaction](./rollback_transaction.md) - Reverte uma transação em andamento
+- [begin_transaction](./begin_transaction.md) - Inicia uma nova transação
+- [commit_transaction](./commit_transaction.md) - Confirma uma transação ativa
+- [rollback_transaction](./rollback_transaction.md) - Reverte uma transação ativa
 
 ### Ferramentas de Cache
-- [get_cache_stats](./get_cache_stats.md) - Obtém estatísticas de uso do cache
-- [clear_cache](./clear_cache.md) - Limpa o cache (total ou parcialmente)
+- [get_cache_stats](./get_cache_stats.md) - Retorna estatísticas sobre o uso do cache
+- [clear_cache](./clear_cache.md) - Limpa o cache do sistema, total ou parcialmente
+
+### Ferramentas de Métricas e Monitoramento
+- [get_metrics](./get_metrics.md) - Retorna métricas de desempenho do sistema
+- [reset_metrics](./reset_metrics.md) - Reseta todas as métricas de desempenho coletadas
 
 ## Formato das Requisições
 
