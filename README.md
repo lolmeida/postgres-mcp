@@ -4,7 +4,7 @@ PostgreSQL MCP é uma implementação do Model Context Protocol (MCP) para permi
 
 ## Status do Projeto
 
-Status atual: **Versão 0.1.0** (70% concluído)
+Status atual: **Versão 0.1.0** (75% concluído)
 
 O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - Operações CRUD completas (criar, ler, atualizar, excluir)
@@ -12,11 +12,12 @@ O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - Gerenciamento de transações
 - Compatibilidade com múltiplos schemas
 - Modos de transporte STDIO e HTTP
+- Sistema de cache para otimização de consultas
 
 Próximos desenvolvimentos:
 - Suporte avançado para tipos de dados PostgreSQL específicos
 - Testes abrangentes
-- Otimizações de desempenho
+- Otimizações adicionais de desempenho
 - Documentação expandida de deployment
 
 ## Sobre o PostgreSQL MCP

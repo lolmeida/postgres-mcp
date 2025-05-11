@@ -578,6 +578,98 @@ Reverte uma transação em andamento.
 }
 ```
 
+### 13. `get_cache_stats`
+
+Retorna estatísticas sobre o uso do cache do sistema.
+
+**Parâmetros:**
+
+Esta ferramenta não requer parâmetros.
+
+**Exemplo:**
+
+```json
+{
+  "tool": "get_cache_stats"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "hits": 3250,
+    "misses": 750,
+    "invalidations": 120,
+    "hit_ratio": "81.25%",
+    "table_cache_size": 428,
+    "schema_cache_size": 12,
+    "metadata_cache_size": 56,
+    "table_cache_capacity": 1000,
+    "schema_cache_capacity": 100,
+    "metadata_cache_capacity": 200
+  }
+}
+```
+
+### 14. `clear_cache`
+
+Limpa o cache do sistema, total ou parcialmente.
+
+**Parâmetros:**
+
+| Nome | Tipo | Descrição | Obrigatório |
+|------|------|-----------|------------|
+| `scope` | string | Escopo da limpeza: 'all', 'table' ou 'schema' | Não (default: "all") |
+| `table` | string | Nome da tabela quando scope='table' | Condicional |
+| `schema` | string | Nome do schema (quando scope='schema' ou 'table') | Condicional |
+
+**Exemplo 1:** Limpar todo o cache
+
+```json
+{
+  "tool": "clear_cache"
+}
+```
+
+**Exemplo 2:** Limpar cache para uma tabela específica
+
+```json
+{
+  "tool": "clear_cache",
+  "parameters": {
+    "scope": "table",
+    "table": "users",
+    "schema": "public"
+  }
+}
+```
+
+**Exemplo 3:** Limpar cache para um schema inteiro
+
+```json
+{
+  "tool": "clear_cache",
+  "parameters": {
+    "scope": "schema",
+    "schema": "public"
+  }
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Cache da tabela public.users limpo"
+  }
+}
+```
+
 ## Operadores de Filtro
 
 O PostgreSQL MCP suporta os seguintes operadores para filtros:
