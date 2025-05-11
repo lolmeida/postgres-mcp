@@ -110,4 +110,51 @@ class TableReference(BaseModel):
         """Valida o nome do schema."""
         if not v:
             raise ValueError("nome do schema não pode ser vazio")
-        return v 
+        return v
+
+
+class ColumnInfo(BaseModel):
+    """Informações de uma coluna."""
+    
+    name: str = Field(..., description="Nome da coluna")
+    data_type: str = Field(..., description="Tipo de dados PostgreSQL")
+    nullable: bool = Field(..., description="Se a coluna pode ser nula")
+    default: Optional[str] = Field(None, description="Valor padrão, se houver")
+    is_primary: bool = Field(False, description="Se é chave primária")
+    is_unique: bool = Field(False, description="Se tem restrição de unicidade")
+    is_foreign_key: bool = Field(False, description="Se é chave estrangeira")
+    references: Optional[str] = Field(None, description="Tabela referenciada se for FK")
+    comment: Optional[str] = Field(None, description="Comentário da coluna, se houver")
+
+
+class TableInfo(BaseModel):
+    """Informações de uma tabela."""
+    
+    name: str = Field(..., description="Nome da tabela")
+    schema: str = Field("public", description="Schema da tabela")
+    columns: List[ColumnInfo] = Field(..., description="Colunas da tabela")
+    primary_keys: List[str] = Field(default_factory=list, description="Colunas de chave primária")
+    comment: Optional[str] = Field(None, description="Comentário da tabela, se houver")
+
+
+class ViewInfo(BaseModel):
+    """Informações de uma view PostgreSQL."""
+    
+    name: str = Field(..., description="Nome da view")
+    schema: str = Field("public", description="Schema da view")
+    columns: List[ColumnInfo] = Field(..., description="Colunas da view")
+    definition: str = Field(..., description="Definição SQL da view")
+    is_materialized: bool = Field(False, description="Se é uma view materializada")
+    comment: Optional[str] = Field(None, description="Comentário da view, se houver")
+    depends_on: List[str] = Field(default_factory=list, description="Tabelas/views das quais esta view depende")
+
+
+class SchemaInfo(BaseModel):
+    """Informações de um schema PostgreSQL."""
+    
+    name: str = Field(..., description="Nome do schema")
+    owner: str = Field(..., description="Dono do schema")
+    tables: List[str] = Field(default_factory=list, description="Tabelas no schema")
+    views: List[str] = Field(default_factory=list, description="Views no schema")
+    materialized_views: List[str] = Field(default_factory=list, description="Views materializadas no schema")
+    comment: Optional[str] = Field(None, description="Comentário do schema, se houver") 

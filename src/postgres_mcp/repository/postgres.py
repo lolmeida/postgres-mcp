@@ -14,7 +14,7 @@ from asyncpg.transaction import Transaction
 
 from postgres_mcp.core.config import PostgresMCPConfig, SSLMode
 from postgres_mcp.core.exceptions import (
-    ConnectionError, DatabaseError, NotFoundError, QueryError, TransactionError
+    ConnectionError, DatabaseError, NotFoundError, QueryError, RepositoryError, TransactionError
 )
 from postgres_mcp.core.logging import SQLLogger
 from postgres_mcp.models.filters import FiltersType
@@ -1047,3 +1047,398 @@ class PostgresRepository(BaseRepository):
         except asyncpg.PostgresError as e:
             logger.error(f"Erro ao obter estrutura da tabela {schema}.{table}: {str(e)}")
             raise DatabaseError(f"Falha ao obter estrutura da tabela: {str(e)}")
+
+    async def get_tables(self, schema: str = "public", include_views: bool = False) -> List[str]:
+        """
+        Obtém a lista de tabelas em um schema.
+        
+        Args:
+            schema: Nome do schema
+            include_views: Se deve incluir views nos resultados
+            
+        Returns:
+            Lista de nomes de tabelas
+        """
+        try:
+            # Constrói a consulta SQL para listagem de tabelas
+            table_type_filter = ""
+            if not include_views:
+                table_type_filter = "AND table_type = 'BASE TABLE'"
+                
+            query = f"""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = $1
+                {table_type_filter}
+                ORDER BY table_name
+            """
+            
+            # Executa a consulta
+            results = await self.pool.fetch(query, schema)
+            
+            # Converte o resultado para uma lista de strings
+            tables = [record["table_name"] for record in results]
+            
+            return tables
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao obter tabelas: {str(e)}")
+            raise RepositoryError(f"Erro ao obter tabelas: {str(e)}")
+
+    async def get_views(self, schema: str = "public", include_materialized: bool = True) -> List[str]:
+        """
+        Obtém a lista de views em um schema.
+        
+        Args:
+            schema: Nome do schema
+            include_materialized: Se deve incluir views materializadas
+            
+        Returns:
+            Lista de nomes de views
+        """
+        try:
+            # Consulta para views normais
+            regular_views_query = """
+                SELECT table_name AS view_name
+                FROM information_schema.views
+                WHERE table_schema = $1
+            """
+            
+            # Executa a consulta para views normais
+            regular_views = await self.pool.fetch(regular_views_query, schema)
+            views = [record["view_name"] for record in regular_views]
+            
+            # Se deve incluir views materializadas
+            if include_materialized:
+                # Consulta para views materializadas (não estão em information_schema.views)
+                materialized_views_query = """
+                    SELECT matviewname AS view_name
+                    FROM pg_matviews
+                    WHERE schemaname = $1
+                """
+                
+                # Executa a consulta para views materializadas
+                materialized_views = await self.pool.fetch(materialized_views_query, schema)
+                views.extend([record["view_name"] for record in materialized_views])
+                
+            # Ordena a lista combinada
+            views.sort()
+            
+            return views
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao obter views: {str(e)}")
+            raise RepositoryError(f"Erro ao obter views: {str(e)}")
+
+    async def describe_view(self, view: str, schema: str = "public") -> Dict[str, Any]:
+        """
+        Obtém a descrição detalhada de uma view.
+        
+        Args:
+            view: Nome da view
+            schema: Nome do schema
+            
+        Returns:
+            Dicionário com informações da view
+        """
+        try:
+            # Verificar se é uma view normal ou materializada
+            view_type_query = """
+                SELECT 
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1 FROM information_schema.views 
+                            WHERE table_schema = $1 AND table_name = $2
+                        ) THEN 'VIEW'
+                        WHEN EXISTS (
+                            SELECT 1 FROM pg_matviews 
+                            WHERE schemaname = $1 AND matviewname = $2
+                        ) THEN 'MATERIALIZED VIEW'
+                        ELSE NULL
+                    END AS view_type
+            """
+            
+            view_type_result = await self.pool.fetchval(view_type_query, schema, view)
+            
+            if not view_type_result:
+                raise RepositoryError(f"View {schema}.{view} não encontrada")
+            
+            is_materialized = view_type_result == 'MATERIALIZED VIEW'
+            
+            # Consulta para obter colunas
+            columns_query = """
+                SELECT 
+                    column_name,
+                    data_type,
+                    is_nullable = 'YES' AS is_nullable,
+                    column_default,
+                    pg_catalog.col_description(
+                        pg_catalog.format('%s.%s', table_schema, table_name)::regclass::oid, 
+                        ordinal_position
+                    ) AS column_comment
+                FROM 
+                    information_schema.columns
+                WHERE 
+                    table_schema = $1 
+                    AND table_name = $2
+                ORDER BY 
+                    ordinal_position
+            """
+            
+            columns_result = await self.pool.fetch(columns_query, schema, view)
+            
+            # Consulta para obter definição da view
+            definition_query = ""
+            if is_materialized:
+                definition_query = """
+                    SELECT pg_get_viewdef(format('%I.%I', $1, $2)::regclass, true) AS view_definition
+                """
+            else:
+                definition_query = """
+                    SELECT view_definition 
+                    FROM information_schema.views 
+                    WHERE table_schema = $1 AND table_name = $2
+                """
+            
+            definition_result = await self.pool.fetchval(definition_query, schema, view)
+            
+            # Consulta para obter comentário da view
+            comment_query = """
+                SELECT pg_catalog.obj_description(
+                    pg_catalog.format('%s.%s', $1, $2)::regclass::oid, 'pg_class'
+                ) AS view_comment
+            """
+            
+            comment_result = await self.pool.fetchval(comment_query, schema, view)
+            
+            # Consulta para obter tabelas/views dependentes
+            depends_query = """
+                SELECT DISTINCT
+                    d.refobjid::regclass::text AS dependency
+                FROM
+                    pg_depend d
+                JOIN
+                    pg_class c ON c.oid = d.objid
+                JOIN 
+                    pg_namespace n ON n.oid = c.relnamespace
+                WHERE
+                    n.nspname = $1
+                    AND c.relname = $2
+                    AND d.deptype = 'n'
+                    AND d.refobjid != d.objid
+            """
+            
+            depends_result = await self.pool.fetch(depends_query, schema, view)
+            depends_on = [record["dependency"] for record in depends_result]
+            
+            # Montar estrutura de colunas
+            columns = []
+            for col in columns_result:
+                columns.append({
+                    "name": col["column_name"],
+                    "data_type": col["data_type"],
+                    "nullable": col["is_nullable"],
+                    "default": col["column_default"],
+                    "comment": col["column_comment"]
+                })
+            
+            # Montar resultado final
+            view_info = {
+                "name": view,
+                "schema": schema,
+                "columns": columns,
+                "definition": definition_result,
+                "is_materialized": is_materialized,
+                "comment": comment_result,
+                "depends_on": depends_on
+            }
+            
+            return view_info
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao descrever view: {str(e)}")
+            raise RepositoryError(f"Erro ao descrever view: {str(e)}")
+
+    async def read_view(
+        self,
+        view: str,
+        schema: str = "public",
+        filters: Optional[Dict[str, Any]] = None,
+        columns: Optional[List[str]] = None,
+        order_by: Optional[str] = None,
+        ascending: bool = True,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Lê registros de uma view.
+        
+        Args:
+            view: Nome da view
+            schema: Nome do schema
+            filters: Filtros para a consulta
+            columns: Colunas específicas a retornar
+            order_by: Coluna para ordenação
+            ascending: Direção da ordenação
+            limit: Limite de registros a retornar
+            offset: Número de registros a pular
+            
+        Returns:
+            Lista de registros
+        """
+        # Reutiliza a implementação de get_records para views
+        return await self.get_records(
+            table=view,
+            schema=schema,
+            filters=filters,
+            columns=columns,
+            order_by=order_by,
+            ascending=ascending,
+            limit=limit,
+            offset=offset
+        )
+        
+    async def create_view(
+        self,
+        view: str,
+        definition: str,
+        schema: str = "public",
+        is_materialized: bool = False,
+        replace: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Cria uma nova view.
+        
+        Args:
+            view: Nome da view
+            definition: Definição SQL da view
+            schema: Nome do schema
+            is_materialized: Se é uma view materializada
+            replace: Se deve substituir caso já exista
+            
+        Returns:
+            Informações da view criada
+        """
+        try:
+            # Construir a consulta SQL para criar a view
+            create_replace = "CREATE OR REPLACE" if replace else "CREATE"
+            materialized = "MATERIALIZED" if is_materialized else ""
+            
+            query = f"{create_replace} {materialized} VIEW {schema}.{view} AS {definition}"
+            
+            # Executar a consulta
+            await self.pool.execute(query)
+            
+            # Retornar informações da view criada
+            view_info = await self.describe_view(view, schema)
+            return view_info
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao criar view: {str(e)}")
+            raise RepositoryError(f"Erro ao criar view: {str(e)}")
+    
+    async def refresh_materialized_view(
+        self,
+        view: str,
+        schema: str = "public",
+        concurrently: bool = False
+    ) -> bool:
+        """
+        Atualiza uma view materializada.
+        
+        Args:
+            view: Nome da view materializada
+            schema: Nome do schema
+            concurrently: Se deve atualizar concurrently
+            
+        Returns:
+            True se a atualização foi bem-sucedida
+        """
+        try:
+            # Verificar se é uma view materializada
+            is_materialized_query = """
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_matviews 
+                    WHERE schemaname = $1 AND matviewname = $2
+                ) AS is_materialized
+            """
+            
+            is_materialized = await self.pool.fetchval(is_materialized_query, schema, view)
+            
+            if not is_materialized:
+                raise RepositoryError(f"{schema}.{view} não é uma view materializada")
+            
+            # Construir a consulta SQL para atualizar a view materializada
+            concurrently_str = "CONCURRENTLY" if concurrently else ""
+            query = f"REFRESH MATERIALIZED VIEW {concurrently_str} {schema}.{view}"
+            
+            # Executar a consulta
+            await self.pool.execute(query)
+            
+            return True
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao atualizar view materializada: {str(e)}")
+            raise RepositoryError(f"Erro ao atualizar view materializada: {str(e)}")
+    
+    async def drop_view(
+        self,
+        view: str,
+        schema: str = "public",
+        if_exists: bool = False,
+        cascade: bool = False
+    ) -> bool:
+        """
+        Exclui uma view.
+        
+        Args:
+            view: Nome da view
+            schema: Nome do schema
+            if_exists: Se deve ignorar caso não exista
+            cascade: Se deve excluir objetos dependentes
+            
+        Returns:
+            True se a exclusão foi bem-sucedida
+        """
+        try:
+            # Verificar se é uma view normal ou materializada
+            view_type_query = """
+                SELECT 
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1 FROM information_schema.views 
+                            WHERE table_schema = $1 AND table_name = $2
+                        ) THEN 'VIEW'
+                        WHEN EXISTS (
+                            SELECT 1 FROM pg_matviews 
+                            WHERE schemaname = $1 AND matviewname = $2
+                        ) THEN 'MATERIALIZED VIEW'
+                        ELSE NULL
+                    END AS view_type
+            """
+            
+            view_type = await self.pool.fetchval(view_type_query, schema, view)
+            
+            if not view_type and not if_exists:
+                raise RepositoryError(f"View {schema}.{view} não encontrada")
+            
+            # Construir a consulta SQL para excluir a view
+            if_exists_str = "IF EXISTS" if if_exists else ""
+            cascade_str = "CASCADE" if cascade else ""
+            
+            query = f"DROP {view_type} {if_exists_str} {schema}.{view} {cascade_str}"
+            
+            # Executar a consulta
+            await self.pool.execute(query)
+            
+            return True
+            
+        except asyncpg.PostgresError as e:
+            # Loga o erro e relança como exceção específica da aplicação
+            self.logger.error(f"Erro ao excluir view: {str(e)}")
+            raise RepositoryError(f"Erro ao excluir view: {str(e)}")
