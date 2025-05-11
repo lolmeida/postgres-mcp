@@ -121,8 +121,8 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 
 ### Testes Unitários
 - [x] Implementar testes para a camada de repositório
-- [ ] Criar testes para a camada de serviços
-- [ ] Desenvolver testes para handlers MCP
+- [x] Criar testes para a camada de serviços
+- [x] Desenvolver testes para handlers MCP
 - [ ] Implementar testes para o sistema de filtros
 - [ ] Criar testes de serialização/deserialização MCP
 
@@ -210,4 +210,4 @@ Para cada tarefa acima, seguir este processo:
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
 - **Fase atual**: Fase 6 - Testes (Em progresso)
-- **Progresso geral**: 95% 
+- **Progresso geral**: 97% 
