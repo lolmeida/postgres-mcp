@@ -6,9 +6,9 @@ import sys
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from tests.mock_models import FunctionInfo, ViewInfo, ColumnInfo
-from tests.mock_services import CacheService, TransactionService
-from tests.mock_handlers import (
+from mock_models import FunctionInfo, ViewInfo, ColumnInfo
+from mock_services import CacheService, TransactionService
+from mock_handlers import (
     BaseHandler,
     GetCacheStatsHandler, ClearCacheHandler,
     BeginTransactionHandler, CommitTransactionHandler,

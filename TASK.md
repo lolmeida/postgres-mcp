@@ -131,11 +131,21 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [x] Criar testes de serialização/deserialização MCP
 
 ### Testes de Integração
-- [ ] Configurar ambiente de teste com Testcontainers
-- [ ] Implementar testes de integração para operações CRUD
+- [x] Configurar ambiente de teste com Docker
+- [x] Implementar estrutura inicial para testes de integração
+- [x] Criar fixtures SQL para testes
+- [ ] Implementar testes de integração para operações CRUD (em andamento)
+  - [x] Criação da estrutura de testes
+  - [x] Implementação dos casos de teste
+  - [ ] Resolução de problemas com a API do PostgresMCP
 - [ ] Criar testes de integração para transações
 - [ ] Desenvolver testes para funcionalidades específicas do PostgreSQL
 - [ ] Implementar testes de carga para avaliar desempenho
+
+#### Problemas conhecidos nos testes de integração
+- [ ] Problema 1: Incompatibilidade na interface da classe PostgresMCP (falta método execute_tool)
+- [ ] Problema 2: Falha na inicialização dos serviços (CacheService)
+- [ ] Problema 3: Incompatibilidade do parâmetro 'mode' da classe PostgresMCP
 
 ### Testes End-to-End
 - [ ] Configurar ambiente de teste end-to-end
@@ -215,4 +225,4 @@ Para cada tarefa acima, seguir este processo:
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
 - **Fase atual**: Fase 6 - Testes (Em progresso)
-- **Progresso geral**: 99% 
+- **Progresso geral**: 95% 
