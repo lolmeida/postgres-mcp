@@ -638,3 +638,183 @@ if __name__ == "__main__":
     import asyncio
     asyncio.run(start_server())
 ```
+
+## Cache
+
+### Obter Estatísticas do Cache
+
+```python
+import requests
+
+def get_cache_stats(base_url="http://localhost:8000"):
+    """
+    Obtém estatísticas de uso do cache.
+    """
+    response = requests.post(
+        base_url,
+        json={"tool": "get_cache_stats"}
+    )
+    return response.json()
+
+# Exemplo de uso
+stats = get_cache_stats()
+print(f"Taxa de acerto do cache: {stats['data']['hit_ratio']}")
+print(f"Total de acertos: {stats['data']['hits']}")
+print(f"Total de falhas: {stats['data']['misses']}")
+```
+
+### Limpar Cache
+
+```python
+import requests
+
+def clear_cache(base_url="http://localhost:8000", scope="all", table=None, schema="public"):
+    """
+    Limpa o cache do sistema.
+    
+    Args:
+        base_url: URL base do servidor MCP
+        scope: Escopo da limpeza ('all', 'table', 'schema')
+        table: Nome da tabela (obrigatório quando scope='table')
+        schema: Nome do schema (obrigatório quando scope='schema' ou 'table')
+    """
+    parameters = {"scope": scope}
+    
+    if scope == "table":
+        if not table:
+            raise ValueError("Parâmetro 'table' obrigatório quando scope='table'")
+        parameters["table"] = table
+        parameters["schema"] = schema
+    elif scope == "schema":
+        parameters["schema"] = schema
+    
+    response = requests.post(
+        base_url,
+        json={
+            "tool": "clear_cache",
+            "parameters": parameters
+        }
+    )
+    return response.json()
+
+# Exemplos de uso
+
+# Limpar todo o cache
+result = clear_cache()
+print(result['data']['message'])
+
+# Limpar cache de uma tabela específica
+result = clear_cache(scope="table", table="users")
+print(result['data']['message'])
+
+# Limpar cache de um schema inteiro
+result = clear_cache(scope="schema", schema="analytics")
+print(result['data']['message'])
+```
+
+### Fluxo Completo com Cache
+
+```python
+import requests
+import time
+
+base_url = "http://localhost:8000"
+
+# 1. Obter estatísticas iniciais do cache
+initial_stats = requests.post(
+    base_url,
+    json={"tool": "get_cache_stats"}
+).json()
+
+print("Estatísticas iniciais do cache:")
+print(f"Hits: {initial_stats['data']['hits']}")
+print(f"Misses: {initial_stats['data']['misses']}")
+
+# 2. Fazer uma consulta - primeiro acesso (miss)
+start_time = time.time()
+first_query = requests.post(
+    base_url,
+    json={
+        "tool": "read_table",
+        "parameters": {
+            "table": "products",
+            "limit": 100
+        }
+    }
+).json()
+first_query_time = time.time() - start_time
+
+print(f"Primeira consulta (não cacheada): {first_query_time:.4f} segundos")
+print(f"Registros retornados: {first_query['data']['count']}")
+
+# 3. Fazer a mesma consulta novamente - deve usar cache (hit)
+start_time = time.time()
+second_query = requests.post(
+    base_url,
+    json={
+        "tool": "read_table",
+        "parameters": {
+            "table": "products",
+            "limit": 100
+        }
+    }
+).json()
+second_query_time = time.time() - start_time
+
+print(f"Segunda consulta (cacheada): {second_query_time:.4f} segundos")
+print(f"Registros retornados: {second_query['data']['count']}")
+print(f"Melhoria de desempenho: {(first_query_time/second_query_time):.2f}x mais rápido")
+
+# 4. Verificar estatísticas do cache após as consultas
+updated_stats = requests.post(
+    base_url,
+    json={"tool": "get_cache_stats"}
+).json()
+
+print("\nEstatísticas atualizadas do cache:")
+print(f"Hits: {updated_stats['data']['hits']} (+{updated_stats['data']['hits'] - initial_stats['data']['hits']})")
+print(f"Misses: {updated_stats['data']['misses']} (+{updated_stats['data']['misses'] - initial_stats['data']['misses']})")
+print(f"Taxa de acerto: {updated_stats['data']['hit_ratio']}")
+
+# 5. Limpar o cache da tabela
+clear_result = requests.post(
+    base_url,
+    json={
+        "tool": "clear_cache",
+        "parameters": {
+            "scope": "table",
+            "table": "products"
+        }
+    }
+).json()
+
+print(f"\nCache limpo: {clear_result['data']['message']}")
+
+# 6. Fazer a consulta novamente após limpar o cache (deve ser miss)
+start_time = time.time()
+third_query = requests.post(
+    base_url,
+    json={
+        "tool": "read_table",
+        "parameters": {
+            "table": "products",
+            "limit": 100
+        }
+    }
+).json()
+third_query_time = time.time() - start_time
+
+print(f"Consulta após limpeza do cache: {third_query_time:.4f} segundos")
+print(f"Registros retornados: {third_query['data']['count']}")
+
+# 7. Verificar estatísticas finais
+final_stats = requests.post(
+    base_url,
+    json={"tool": "get_cache_stats"}
+).json()
+
+print("\nEstatísticas finais do cache:")
+print(f"Hits: {final_stats['data']['hits']}")
+print(f"Misses: {final_stats['data']['misses']}")
+print(f"Invalidações: {final_stats['data']['invalidations']}")
+```

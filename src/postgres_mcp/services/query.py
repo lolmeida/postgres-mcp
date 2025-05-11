@@ -24,7 +24,8 @@ class QueryService(BaseService):
         self,
         repository: BaseRepository,
         logger: logging.Logger,
-        config: PostgresMCPConfig
+        config: PostgresMCPConfig,
+        cache_service: Optional["CacheService"] = None
     ):
         """
         Inicializa o serviço.
@@ -33,9 +34,11 @@ class QueryService(BaseService):
             repository: Repositório para acesso a dados
             logger: Logger configurado
             config: Configuração do PostgreSQL MCP
+            cache_service: Serviço de cache (opcional)
         """
         super().__init__(repository, logger)
         self.config = config
+        self.cache_service = cache_service
     
     async def execute_query(
         self,
@@ -66,9 +69,32 @@ class QueryService(BaseService):
         # Sanitizar e validar a consulta
         self._validate_query(query)
         
+        # Determinar se é uma consulta SELECT (somente leitura)
+        is_select_query = query.strip().upper().startswith("SELECT")
+        
+        # Verificar cache se for uma consulta SELECT e se não estiver em uma transação
+        if is_select_query and not transaction_id and self.cache_service:
+            # Converter parâmetros para lista se necessário
+            param_list = list(params.values()) if params else None
+            
+            # Tentar obter resultados do cache
+            cached_result = await self.cache_service.get_cached_query_result(query, param_list)
+            if cached_result is not None:
+                self.logger.debug("Retornando resultado do cache para consulta SQL")
+                return cached_result
+        
         # Executar a consulta
         self.logger.debug("Executando consulta personalizada")
-        return await self.repository.execute(query, params, True)
+        result = await self.repository.execute(query, params, True)
+        
+        # Armazenar em cache se for uma consulta SELECT
+        if is_select_query and not transaction_id and self.cache_service:
+            # Converter parâmetros para lista se necessário
+            param_list = list(params.values()) if params else None
+            
+            await self.cache_service.cache_query_result(query, result, param_list)
+        
+        return result
     
     def _validate_query(self, query: str) -> None:
         """

@@ -242,9 +242,16 @@ Acesso a recursos específicos do PostgreSQL:
    - Keepalive para evitar conexões inativas
 
 4. **Cache**
-   - Armazenamento em cache de consultas frequentes
-   - Estratégia configurável (TTL, tamanho máximo)
-   - Invalidação baseada em eventos
+   - Implementado através do CacheService dedicado
+   - Armazenamento em cache de:
+     - Resultados de consultas (tabelas e SQL personalizadas)
+     - Metadados de tabelas e schemas
+   - Estratégia TTL (Time to Live) configurável
+   - Mecanismos de invalidação automática em operações de escrita
+   - Diferentes níveis de cache (table, schema, metadata)
+   - Estatísticas de uso de cache (hits, misses, taxa de acerto)
+   - API para limpeza manual do cache (total, por schema ou por tabela)
+   - Integração transparente com os serviços existentes
 
 ## Considerações sobre Segurança
 

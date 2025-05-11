@@ -24,6 +24,10 @@ Esta seção contém a documentação detalhada de todas as ferramentas disponí
 - [commit_transaction](./commit_transaction.md) - Confirma uma transação em andamento
 - [rollback_transaction](./rollback_transaction.md) - Reverte uma transação em andamento
 
+### Ferramentas de Cache
+- [get_cache_stats](./get_cache_stats.md) - Obtém estatísticas de uso do cache
+- [clear_cache](./clear_cache.md) - Limpa o cache (total ou parcialmente)
+
 ## Formato das Requisições
 
 Todas as requisições para a API do PostgreSQL MCP seguem o formato padrão MCP:
