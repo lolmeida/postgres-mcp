@@ -4,7 +4,7 @@ Bem-vindo à documentação oficial do PostgreSQL MCP! Este projeto implementa o
 
 ## Status do Projeto
 
-**Versão atual: 0.1.0 (75% concluído)**
+**Versão atual: 0.1.0 (80% concluído)**
 
 O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - ✅ Operações CRUD completas (criar, ler, atualizar, excluir)
@@ -13,12 +13,13 @@ O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
 - ✅ Compatibilidade com múltiplos schemas
 - ✅ Estrutura completa de camadas (Handlers, Services, Repository)
 - ✅ Sistema de cache para otimização de consultas
+- ✅ Sistema de métricas para monitoramento de desempenho
 
 **Próximos desenvolvimentos:**
 - 🔲 Testes automatizados abrangentes
 - 🔲 Suporte avançado para tipos específicos do PostgreSQL
-- 🔲 Otimizações adicionais de desempenho 
-- 🔲 Documentação expandida para casos de uso 
+- 🔲 Otimizações de desempenho adicionais
+- 🔲 Documentação expandida para deployment
 
 ## Sobre o PostgreSQL MCP
 
@@ -36,7 +37,7 @@ O PostgreSQL MCP serve como uma ponte entre LLMs e bancos de dados PostgreSQL, f
 
 ## Status do Projeto
 
-O PostgreSQL MCP está atualmente na versão 0.1.0 com aproximadamente 75% das funcionalidades implementadas. O projeto completou as seguintes fases:
+O PostgreSQL MCP está atualmente na versão 0.1.0 com aproximadamente 80% das funcionalidades implementadas. O projeto completou as seguintes fases:
 
 - ✅ **Fase 1**: Preparação e Estrutura Inicial
 - ✅ **Fase 2**: Implementação da Camada de Conexão PostgreSQL

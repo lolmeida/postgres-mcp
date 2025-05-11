@@ -301,6 +301,7 @@ class PostgresMCP:
         from postgres_mcp.services.query import QueryService
         from postgres_mcp.services.transaction import TransactionService
         from postgres_mcp.services.cache import CacheService
+        from postgres_mcp.services.metrics import MetricsService
         
         # Instanciar serviços
         # O CacheService deve ser instanciado primeiro para ser passado aos outros serviços
@@ -312,6 +313,9 @@ class PostgresMCP:
         self.services["schema"] = SchemaService(self.repository, self.logger, cache_service)
         self.services["query"] = QueryService(self.repository, self.logger, self.config, cache_service)
         self.services["transaction"] = TransactionService(self.repository, self.logger)
+        
+        # Instanciar serviço de métricas
+        self.services["metrics"] = MetricsService(self.repository, self.logger)
         
         self.logger.info("Serviços inicializados")
     
@@ -331,6 +335,9 @@ class PostgresMCP:
         from postgres_mcp.handlers.cache import (
             GetCacheStatsHandler, ClearCacheHandler
         )
+        from postgres_mcp.handlers.metrics import (
+            GetMetricsHandler, ResetMetricsHandler
+        )
         
         # Extrair serviços
         table_service = self.services["table"]
@@ -338,6 +345,7 @@ class PostgresMCP:
         query_service = self.services["query"]
         transaction_service = self.services["transaction"]
         cache_service = self.services["cache"]
+        metrics_service = self.services["metrics"]
         
         # Registrar handlers de schema
         self.router.register_handler("list_schemas", ListSchemasHandler(schema_service))
@@ -362,6 +370,10 @@ class PostgresMCP:
         # Registrar handlers de cache
         self.router.register_handler("get_cache_stats", GetCacheStatsHandler(cache_service))
         self.router.register_handler("clear_cache", ClearCacheHandler(cache_service))
+        
+        # Registrar handlers de métricas
+        self.router.register_handler("get_metrics", GetMetricsHandler(metrics_service))
+        self.router.register_handler("reset_metrics", ResetMetricsHandler(metrics_service))
         
         self.logger.info("Handlers inicializados e registrados")
     

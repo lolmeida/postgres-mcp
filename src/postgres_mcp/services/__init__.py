@@ -8,6 +8,7 @@ from postgres_mcp.services.table import TableService
 from postgres_mcp.services.query import QueryService
 from postgres_mcp.services.transaction import TransactionService
 from postgres_mcp.services.cache import CacheService
+from postgres_mcp.services.metrics import MetricsService
 
 __all__ = [
     'BaseService',
@@ -15,5 +16,6 @@ __all__ = [
     'TableService',
     'QueryService',
     'TransactionService',
-    'CacheService'
+    'CacheService',
+    'MetricsService'
 ] 

@@ -47,7 +47,7 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [x] Implementar controle de acesso e segurança
 - [x] Criar sistema de logging
 - [x] Desenvolver CacheService para otimização de consultas frequentes
-- [ ] Implementar MetricsService para monitoramento de desempenho
+- [x] Implementar MetricsService para monitoramento de desempenho
 
 ## 📡 Fase 4: Implementação da Interface MCP
 
@@ -78,6 +78,9 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [x] Implementar handlers para operações de cache:
   - [x] GetCacheStatsHandler
   - [x] ClearCacheHandler
+- [x] Implementar handlers para operações de métricas:
+  - [x] GetMetricsHandler
+  - [x] ResetMetricsHandler
 
 ## 🔍 Fase 5: Implementação de Funcionalidades Avançadas
 
@@ -192,4 +195,4 @@ Para cada tarefa acima, seguir este processo:
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
 - **Fase atual**: Fase 5 - Implementação de Funcionalidades Avançadas (Em progresso)
-- **Progresso geral**: 75% 
+- **Progresso geral**: 80% 

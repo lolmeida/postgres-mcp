@@ -670,6 +670,86 @@ Limpa o cache do sistema, total ou parcialmente.
 }
 ```
 
+### 15. `get_metrics`
+
+Retorna métricas de desempenho do sistema.
+
+**Parâmetros:**
+
+| Nome | Tipo | Descrição | Obrigatório |
+|------|------|-----------|------------|
+| `metric_type` | string | Tipo específico de métrica a retornar: 'execution_times', 'errors', 'resource_usage', 'operations_per_second' | Não |
+| `operation` | string | Nome da operação para filtrar estatísticas (quando metric_type='execution_times') | Não |
+| `window_seconds` | integer | Janela de tempo em segundos para cálculo de operações por segundo (quando metric_type='operations_per_second') | Não (default: 60) |
+
+**Exemplo:**
+
+```json
+{
+  "tool": "get_metrics",
+  "parameters": {
+    "metric_type": "execution_times"
+  }
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "execution_times": {
+      "read_table": {
+        "min": 0.001,
+        "max": 1.234,
+        "avg": 0.075,
+        "median": 0.045,
+        "p95": 0.312,
+        "count": 1250,
+        "total_count": 1500
+      },
+      "execute_query": {
+        "min": 0.005,
+        "max": 2.345,
+        "avg": 0.125,
+        "median": 0.089,
+        "p95": 0.456,
+        "count": 850,
+        "total_count": 1200
+      }
+    }
+  }
+}
+```
+
+### 16. `reset_metrics`
+
+Reseta todas as métricas de desempenho coletadas pelo sistema.
+
+**Parâmetros:**
+
+Esta ferramenta não requer parâmetros.
+
+**Exemplo:**
+
+```json
+{
+  "tool": "reset_metrics"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Métricas resetadas com sucesso"
+  }
+}
+```
+
 ## Operadores de Filtro
 
 O PostgreSQL MCP suporta os seguintes operadores para filtros:
