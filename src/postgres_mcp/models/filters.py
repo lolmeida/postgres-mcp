@@ -46,6 +46,14 @@ class FilterOperator(str, Enum):
     HAS_ANY_KEYS = "has_any_keys"  # JSONB has any keys
     HAS_ALL_KEYS = "has_all_keys"  # JSONB has all keys
     JSONB_PATH = "jsonb_path"  # JSONB path query
+    
+    # Operadores para tipos geométricos
+    DISTANCE = "distance"  # Distância entre pontos
+    NEAR = "near"  # Ponto próximo (dentro de determinada distância)
+    CONTAINS_POINT = "contains_point"  # Polígono contém ponto
+    WITHIN = "within"  # Ponto/objeto está dentro de outro
+    INTERSECTS = "intersects"  # Objetos se interceptam
+    BOUNDING_BOX = "bounding_box"  # Dentro da caixa delimitadora
 
 
 class ComparisonFilter(BaseModel):
@@ -177,6 +185,97 @@ class JsonbFilter(BaseModel):
         return values
 
 
+class GeometricFilter(BaseModel):
+    """
+    Filtro para tipos geométricos do PostgreSQL.
+    
+    Suporta operações com point, line, circle, polygon e outros tipos geométricos.
+    """
+    
+    distance: Optional[Union[float, str]] = Field(None, description="Distância entre pontos")
+    near: Optional[str] = Field(None, description="Ponto próximo (formato: (x,y))")
+    contains_point: Optional[str] = Field(None, description="Polígono contém ponto (formato: (x,y))")
+    within: Optional[str] = Field(None, description="Dentro de outro objeto geométrico")
+    intersects: Optional[str] = Field(None, description="Intercepta outro objeto geométrico")
+    bounding_box: Optional[str] = Field(None, description="Dentro da caixa delimitadora (formato: ((x1,y1),(x2,y2)))")
+    
+    @root_validator(pre=True)
+    def check_at_least_one_operator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """Verifica se pelo menos um operador foi fornecido."""
+        if not any(op in values for op in [
+            "distance", "near", "contains_point", "within", "intersects", "bounding_box"
+        ]):
+            raise ValueError("Pelo menos um operador geométrico deve ser fornecido")
+        return values
+    
+    @root_validator
+    def validate_geometric_format(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """Valida o formato dos valores geométricos."""
+        # Validar formato de ponto (x,y)
+        for field in ["near", "contains_point"]:
+            value = values.get(field)
+            if value is not None:
+                if not cls._is_valid_point_format(value):
+                    raise ValueError(f"Formato inválido para {field}. Deve ser '(x,y)'")
+        
+        # Validar formato de caixa delimitadora ((x1,y1),(x2,y2))
+        if "bounding_box" in values and values["bounding_box"] is not None:
+            if not cls._is_valid_box_format(values["bounding_box"]):
+                raise ValueError("Formato inválido para bounding_box. Deve ser '((x1,y1),(x2,y2))'")
+        
+        return values
+    
+    @staticmethod
+    def _is_valid_point_format(value: str) -> bool:
+        """Verifica se o valor está no formato de ponto (x,y)."""
+        if not isinstance(value, str):
+            return False
+        
+        # Formato básico (x,y)
+        if not (value.startswith("(") and value.endswith(")")):
+            return False
+        
+        try:
+            # Remover parênteses e dividir pelas coordenadas
+            coords = value[1:-1].split(",")
+            if len(coords) != 2:
+                return False
+            
+            # Tentar converter para float
+            float(coords[0].strip())
+            float(coords[1].strip())
+            return True
+        except (ValueError, IndexError):
+            return False
+    
+    @staticmethod
+    def _is_valid_box_format(value: str) -> bool:
+        """Verifica se o valor está no formato de caixa ((x1,y1),(x2,y2))."""
+        if not isinstance(value, str):
+            return False
+        
+        # Formato básico ((x1,y1),(x2,y2))
+        if not (value.startswith("((") and value.endswith("))")):
+            return False
+        
+        try:
+            # Remover parênteses externos
+            inner_value = value[1:-1]
+            
+            # Dividir pelos dois pontos
+            points = inner_value.split("),(")
+            if len(points) != 2:
+                return False
+            
+            # Validar cada ponto
+            point1 = "(" + points[0] + ")"
+            point2 = "(" + points[1] + ")"
+            
+            return GeometricFilter._is_valid_point_format(point1) and GeometricFilter._is_valid_point_format(point2)
+        except (ValueError, IndexError):
+            return False
+
+
 # Tipo complexo para filtros
 FilterType = Union[
     Any,  # Valor direto (igualdade simples)
@@ -186,6 +285,7 @@ FilterType = Union[
     NullFilter,
     ArrayFilter,
     JsonbFilter,
+    GeometricFilter,  # Novo tipo de filtro para geometria
     Dict[str, Any]  # Dicionário genérico para outros filtros
 ]
 
