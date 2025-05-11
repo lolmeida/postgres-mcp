@@ -23,6 +23,8 @@ O PostgreSQL MCP implementou todas as funcionalidades principais, incluindo:
   - Criação de views normais e materializadas
   - Atualização de views materializadas
   - Acesso a dados via views
+- Funções e Procedimentos:
+  - Listagem, descrição, criação, execução e exclusão
 
 Próximos desenvolvimentos:
 - Implementação de suporte a funções e procedimentos armazenados
@@ -139,4 +141,27 @@ Contribuições são bem-vindas! Por favor, consulte [CONTRIBUTING.md](CONTRIBUT
 
 ## Licença
 
-Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes. 
+Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## Funcionalidades Principais
+
+* **CRUD Completo**: Operações de criação, leitura, atualização e exclusão.
+* **Sistema de Filtragem Avançado**: Consultas complexas com suporte para uma variedade de operadores.
+* **Transações**: Gerenciamento de transações para operações atômicas.
+* **Multi-Schema**: Compatibilidade com múltiplos schemas.
+* **Sistema de Cache**: Cache de consultas para otimização de desempenho.
+* **Sistema de Métricas**: Monitoramento de desempenho e uso.
+* **Tipos Avançados PostgreSQL**: Suporte para tipos arrays, JSON/JSONB e tipos geométricos.
+* **Views**: Gerenciamento completo de views (listagem, descrição, criação, atualização, exclusão).
+* **Funções e Procedimentos**: Suporte a funções e procedimentos armazenados (listagem, descrição, criação, execução, exclusão).
+
+## Começando
+
+### Pré-requisitos
+
+* Python 3.8+
+* PostgreSQL 12+
+* asyncpg
+* pydantic
+* cachetools
+* psutil 

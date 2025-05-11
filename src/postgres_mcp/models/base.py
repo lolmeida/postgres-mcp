@@ -157,4 +157,6 @@ class SchemaInfo(BaseModel):
     tables: List[str] = Field(default_factory=list, description="Tabelas no schema")
     views: List[str] = Field(default_factory=list, description="Views no schema")
     materialized_views: List[str] = Field(default_factory=list, description="Views materializadas no schema")
+    functions: List[str] = Field(default_factory=list, description="Funções no schema")
+    procedures: List[str] = Field(default_factory=list, description="Procedimentos no schema")
     comment: Optional[str] = Field(None, description="Comentário do schema, se houver") 

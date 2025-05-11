@@ -99,8 +99,23 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [x] Implementar suporte a múltiplos schemas
 - [x] Adicionar suporte a tipos de dados avançados
 - [x] Criar funcionalidades para trabalhar com views
-- [ ] Implementar suporte a funções e procedimentos armazenados
-- [ ] Adicionar suporte a CTEs e Window Functions
+- [x] Implementar suporte a funções e procedimentos armazenados
+- [x] Adicionar suporte a CTEs e Window Functions
+- [x] Implementar suporte a views
+  - [x] Criar modelo ViewInfo para representar views
+  - [x] Implementar métodos no repositório para gerenciar views
+  - [x] Criar serviço ViewService para operações com views
+  - [x] Implementar handlers MCP para operações com views
+  - [x] Adicionar suporte a views materializadas
+  - [x] Implementar refresh de views materializadas
+
+- [x] Implementar suporte a funções e procedimentos armazenados
+  - [x] Criar modelo FunctionInfo para representar funções
+  - [x] Implementar métodos no repositório para gerenciar funções
+  - [x] Criar serviço FunctionService para operações com funções
+  - [x] Implementar handlers MCP para operações com funções
+  - [x] Adicionar suporte a procedimentos armazenados
+  - [x] Implementar execução de funções com parâmetros
 
 ## 🧪 Fase 6: Testes
 
@@ -190,7 +205,7 @@ Para cada tarefa acima, seguir este processo:
    - Push para o repositório remoto
    - Marcar tarefa como concluída neste documento
 
-## �� Status do Projeto
+## 🔄 Status do Projeto
 
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30

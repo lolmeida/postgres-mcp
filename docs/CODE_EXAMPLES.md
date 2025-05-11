@@ -1257,3 +1257,458 @@ result = drop_view(
 )
 print(result['data']['message'] if 'message' in result['data'] else "View excluída com sucesso.")
 ```
+
+## Exemplos de Uso de Views
+
+### Listando Views
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def list_views_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Listar todas as views no schema public
+    result = await mcp.execute("list_views", {"schema": "public"})
+    print("Views:", result["data"])
+    
+    # Listar apenas views materializadas
+    result = await mcp.execute("list_views", {
+        "schema": "public",
+        "only_materialized": True
+    })
+    print("Views materializadas:", result["data"])
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(list_views_example())
+```
+
+### Descrevendo uma View
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def describe_view_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Descrever uma view específica
+    result = await mcp.execute("describe_view", {
+        "view": "product_summary",
+        "schema": "public"
+    })
+    
+    view_info = result["data"]
+    print(f"Nome: {view_info['name']}")
+    print(f"Schema: {view_info['schema']}")
+    print(f"Materializada: {view_info['is_materialized']}")
+    print(f"Definição: {view_info['definition']}")
+    print("Colunas:")
+    for column in view_info["columns"]:
+        print(f"  - {column['name']} ({column['data_type']})")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(describe_view_example())
+```
+
+### Criando uma View
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def create_view_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Criar uma view simples
+    result = await mcp.execute("create_view", {
+        "view": "customer_orders",
+        "query": """
+            SELECT c.customer_id, c.name, COUNT(o.order_id) as total_orders, SUM(o.amount) as total_spent
+            FROM customers c
+            LEFT JOIN orders o ON c.customer_id = o.customer_id
+            GROUP BY c.customer_id, c.name
+        """,
+        "replace": True
+    })
+    
+    print(f"View criada: {result['success']}")
+    
+    # Criar uma view materializada
+    result = await mcp.execute("create_view", {
+        "view": "product_stats",
+        "query": """
+            SELECT p.product_id, p.name, p.category, 
+                   COUNT(oi.order_id) as order_count,
+                   SUM(oi.quantity) as total_sold
+            FROM products p
+            LEFT JOIN order_items oi ON p.product_id = oi.product_id
+            GROUP BY p.product_id, p.name, p.category
+        """,
+        "materialized": True,
+        "with_data": True
+    })
+    
+    print(f"View materializada criada: {result['success']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(create_view_example())
+```
+
+### Atualizando uma View Materializada
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def refresh_view_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Atualizar uma view materializada
+    result = await mcp.execute("refresh_view", {
+        "view": "product_stats",
+        "schema": "public",
+        "concurrently": True
+    })
+    
+    print(f"View atualizada: {result['success']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(refresh_view_example())
+```
+
+### Excluindo uma View
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def drop_view_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Excluir uma view
+    result = await mcp.execute("drop_view", {
+        "view": "customer_orders",
+        "schema": "public",
+        "if_exists": True,
+        "cascade": False
+    })
+    
+    print(f"View excluída: {result['success']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(drop_view_example())
+```
+
+## Exemplos de Uso de Funções e Procedimentos
+
+### Listando Funções
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def list_functions_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Listar todas as funções no schema public
+    result = await mcp.execute("list_functions", {"schema": "public"})
+    print("Funções:", result["data"])
+    
+    # Listar apenas funções (sem procedimentos)
+    result = await mcp.execute("list_functions", {
+        "schema": "public",
+        "include_procedures": False
+    })
+    print("Funções (sem procedimentos):", result["data"])
+    
+    # Listar sem funções de agregação
+    result = await mcp.execute("list_functions", {
+        "schema": "public",
+        "include_aggregates": False
+    })
+    print("Funções (sem agregação):", result["data"])
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(list_functions_example())
+```
+
+### Descrevendo uma Função
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def describe_function_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Descrever uma função específica
+    result = await mcp.execute("describe_function", {
+        "function": "calculate_discount",
+        "schema": "public"
+    })
+    
+    func_info = result["data"]
+    print(f"Nome: {func_info['name']}")
+    print(f"Schema: {func_info['schema']}")
+    print(f"Tipo de retorno: {func_info['return_type']}")
+    print(f"Linguagem: {func_info['language']}")
+    print(f"É procedimento: {func_info['is_procedure']}")
+    
+    print("Argumentos:")
+    for i, arg_type in enumerate(func_info["argument_types"]):
+        arg_name = func_info["argument_names"][i] if i < len(func_info["argument_names"]) else f"arg{i+1}"
+        arg_default = func_info["argument_defaults"][i] if i < len(func_info["argument_defaults"]) else "sem padrão"
+        print(f"  - {arg_name} ({arg_type}), padrão: {arg_default}")
+    
+    print(f"Definição:\n{func_info['definition']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(describe_function_example())
+```
+
+### Criando uma Função
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def create_function_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Criar uma função simples
+    result = await mcp.execute("create_function", {
+        "function": "calculate_discount",
+        "schema": "public",
+        "return_type": "numeric",
+        "argument_definitions": [
+            {"name": "price", "type": "numeric"},
+            {"name": "discount_percent", "type": "numeric", "default": "10"}
+        ],
+        "definition": """
+            BEGIN
+                RETURN price - (price * discount_percent / 100);
+            END;
+        """,
+        "language": "plpgsql",
+        "replace": True,
+        "volatility": "immutable"
+    })
+    
+    print(f"Função criada: {result['success']}")
+    
+    # Criar um procedimento
+    result = await mcp.execute("create_function", {
+        "function": "update_product_price",
+        "schema": "public",
+        "return_type": "void",
+        "argument_definitions": [
+            {"name": "product_id_param", "type": "integer"},
+            {"name": "new_price", "type": "numeric"}
+        ],
+        "definition": """
+            BEGIN
+                UPDATE products SET price = new_price WHERE product_id = product_id_param;
+            END;
+        """,
+        "language": "plpgsql",
+        "is_procedure": True,
+        "replace": True
+    })
+    
+    print(f"Procedimento criado: {result['success']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(create_function_example())
+```
+
+### Executando uma Função
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def execute_function_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Executar uma função com argumentos posicionais
+    result = await mcp.execute("execute_function", {
+        "function": "calculate_discount",
+        "schema": "public",
+        "args": [100.00, 20]
+    })
+    
+    print(f"Resultado da função com argumentos posicionais: {result['data']}")
+    
+    # Executar uma função com argumentos nomeados
+    result = await mcp.execute("execute_function", {
+        "function": "calculate_discount",
+        "schema": "public",
+        "named_args": {
+            "price": 200.00,
+            "discount_percent": 15
+        }
+    })
+    
+    print(f"Resultado da função com argumentos nomeados: {result['data']}")
+    
+    # Executar um procedimento
+    result = await mcp.execute("execute_function", {
+        "function": "update_product_price",
+        "schema": "public",
+        "args": [1, 29.99]
+    })
+    
+    print(f"Procedimento executado: {result['success']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(execute_function_example())
+```
+
+### Excluindo uma Função
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def drop_function_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Excluir uma função
+    result = await mcp.execute("drop_function", {
+        "function": "calculate_discount",
+        "schema": "public",
+        "if_exists": True,
+        "cascade": False,
+        "arg_types": ["numeric", "numeric"]  # Importante para diferenciar funções com mesmo nome
+    })
+    
+    print(f"Função excluída: {result['success']}")
+    
+    # Excluir um procedimento
+    result = await mcp.execute("drop_function", {
+        "function": "update_product_price",
+        "schema": "public",
+        "if_exists": True
+    })
+    
+    print(f"Procedimento excluído: {result['success']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(drop_function_example())
+```
+
+## Exemplo de Uso Combinado
+
+### Criando e Utilizando uma Função em uma Consulta
+
+```python
+import asyncio
+from postgres_mcp.server import PostgresMCP
+
+async def combined_example():
+    # Inicializar o cliente MCP
+    mcp = PostgresMCP(host="localhost", port=5432, username="postgres", 
+                      password="postgres", database="testdb")
+    await mcp.connect()
+    
+    # Criar uma função para cálculo de desconto
+    await mcp.execute("create_function", {
+        "function": "calculate_discount",
+        "schema": "public",
+        "return_type": "numeric",
+        "argument_definitions": [
+            {"name": "price", "type": "numeric"},
+            {"name": "discount_percent", "type": "numeric", "default": "10"}
+        ],
+        "definition": """
+            BEGIN
+                RETURN price - (price * discount_percent / 100);
+            END;
+        """,
+        "language": "plpgsql",
+        "replace": True,
+        "volatility": "immutable"
+    })
+    
+    # Criar uma view que utiliza a função
+    await mcp.execute("create_view", {
+        "view": "discounted_products",
+        "query": """
+            SELECT 
+                product_id, 
+                name, 
+                price, 
+                calculate_discount(price, 15) as discounted_price
+            FROM 
+                products
+        """,
+        "replace": True
+    })
+    
+    # Consultar a view
+    result = await mcp.execute("query", {
+        "query": "SELECT * FROM discounted_products WHERE price > $1",
+        "params": [50.00]
+    })
+    
+    print("Produtos com desconto:")
+    for product in result["data"]:
+        print(f"  - {product['name']}: ${product['price']} -> ${product['discounted_price']}")
+    
+    await mcp.disconnect()
+
+# Executar o exemplo
+asyncio.run(combined_example())
+```
