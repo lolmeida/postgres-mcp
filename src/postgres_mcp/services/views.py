@@ -8,10 +8,10 @@ from typing import Any, Dict, List, Optional
 from postgres_mcp.core.exceptions import ServiceError
 from postgres_mcp.models.base import ViewInfo
 from postgres_mcp.repository.postgres import PostgresRepository
-from postgres_mcp.services.base import ServiceBase
+from postgres_mcp.services.base import BaseService
 
 
-class ViewService(ServiceBase):
+class ViewService(BaseService):
     """
     Serviço para gerenciamento de views PostgreSQL.
     

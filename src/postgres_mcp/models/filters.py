@@ -5,7 +5,7 @@ Sistema de filtros para consultas SQL
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class FilterOperator(str, Enum):
@@ -70,12 +70,15 @@ class ComparisonFilter(BaseModel):
     lte: Optional[Any] = Field(None, description="Menor ou igual a")
     ne: Optional[Any] = Field(None, description="Diferente de")
     
-    @root_validator(pre=True)
-    def check_at_least_one_operator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='before')
+    @classmethod
+    def check_at_least_one_operator(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """Verifica se pelo menos um operador foi fornecido."""
-        if not any(op in values for op in ["eq", "gt", "lt", "gte", "lte", "ne"]):
+        if not isinstance(data, dict):
+            return data
+        if not any(op in data for op in ["eq", "gt", "lt", "gte", "lte", "ne"]):
             raise ValueError("Pelo menos um operador de comparação deve ser fornecido")
-        return values
+        return data
 
 
 class TextFilter(BaseModel):
@@ -90,12 +93,15 @@ class TextFilter(BaseModel):
     match: Optional[str] = Field(None, description="Regex match case sensitive")
     imatch: Optional[str] = Field(None, description="Regex match case insensitive")
     
-    @root_validator(pre=True)
-    def check_at_least_one_operator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='before')
+    @classmethod
+    def check_at_least_one_operator(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """Verifica se pelo menos um operador foi fornecido."""
-        if not any(op in values for op in ["like", "ilike", "match", "imatch"]):
+        if not isinstance(data, dict):
+            return data
+        if not any(op in data for op in ["like", "ilike", "match", "imatch"]):
             raise ValueError("Pelo menos um operador de texto deve ser fornecido")
-        return values
+        return data
 
 
 class ListFilter(BaseModel):
@@ -108,12 +114,26 @@ class ListFilter(BaseModel):
     in_: Optional[List[Any]] = Field(None, alias="in", description="In list")
     nin: Optional[List[Any]] = Field(None, description="Not in list")
     
-    @root_validator(pre=True)
-    def check_at_least_one_operator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='before')
+    @classmethod
+    def check_at_least_one_operator(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """Verifica se pelo menos um operador foi fornecido."""
-        if not any(op in values for op in ["in", "nin"]):
+        if not isinstance(data, dict):
+            return data
+        
+        # Verificar se pelo menos um operador está presente (mesmo que seja uma lista vazia)
+        # Check for 'in_' field as well as 'in' for direct instantiation
+        has_in = "in" in data or "in_" in data
+        has_nin = "nin" in data
+        
+        if not (has_in or has_nin):
             raise ValueError("Pelo menos um operador de lista deve ser fornecido")
-        return values
+        
+        # Handle 'in_' to 'in' conversion for direct instantiation
+        if "in_" in data and "in" not in data:
+            data["in"] = data.pop("in_")
+        
+        return data
 
 
 class NullFilter(BaseModel):
@@ -123,15 +143,23 @@ class NullFilter(BaseModel):
     Suporta operador is (null/not null).
     """
     
-    is_: Optional[str] = Field(..., alias="is", description="IS NULL ou IS NOT NULL")
+    is_: str = Field(alias="is", description="IS NULL ou IS NOT NULL")
     
-    @root_validator(pre=True)
-    def validate_is_value(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='before')
+    @classmethod
+    def validate_is_value(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """Valida o valor do operador is."""
-        is_value = values.get("is")
+        if not isinstance(data, dict):
+            return data
+            
+        # Handle 'is_' to 'is' conversion for direct instantiation
+        if "is_" in data and "is" not in data:
+            data["is"] = data.pop("is_")
+            
+        is_value = data.get("is")
         if is_value is not None and is_value != "null" and is_value != "not null":
             raise ValueError("Valor de 'is' deve ser 'null' ou 'not null'")
-        return values
+        return data
 
 
 class ArrayFilter(BaseModel):
@@ -148,15 +176,18 @@ class ArrayFilter(BaseModel):
     array_length_gt: Optional[int] = Field(None, description="Comprimento do array maior que")
     array_length_lt: Optional[int] = Field(None, description="Comprimento do array menor que")
     
-    @root_validator(pre=True)
-    def check_at_least_one_operator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='before')
+    @classmethod
+    def check_at_least_one_operator(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """Verifica se pelo menos um operador foi fornecido."""
-        if not any(op in values for op in [
+        if not isinstance(data, dict):
+            return data
+        if not any(op in data for op in [
             "contains", "contained_by", "overlap", 
             "array_length", "array_length_gt", "array_length_lt"
         ]):
             raise ValueError("Pelo menos um operador de array deve ser fornecido")
-        return values
+        return data
 
 
 class JsonbFilter(BaseModel):
@@ -174,15 +205,18 @@ class JsonbFilter(BaseModel):
     has_all_keys: Optional[List[str]] = Field(None, description="JSONB tem todas as chaves")
     jsonb_path: Optional[str] = Field(None, description="Consulta caminho JSONB")
     
-    @root_validator(pre=True)
-    def check_at_least_one_operator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='before')
+    @classmethod
+    def check_at_least_one_operator(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """Verifica se pelo menos um operador foi fornecido."""
-        if not any(op in values for op in [
+        if not isinstance(data, dict):
+            return data
+        if not any(op in data for op in [
             "jsonb_contains", "jsonb_contained_by", "has_key", 
             "has_any_keys", "has_all_keys", "jsonb_path"
         ]):
             raise ValueError("Pelo menos um operador JSONB deve ser fornecido")
-        return values
+        return data
 
 
 class GeometricFilter(BaseModel):
@@ -199,31 +233,34 @@ class GeometricFilter(BaseModel):
     intersects: Optional[str] = Field(None, description="Intercepta outro objeto geométrico")
     bounding_box: Optional[str] = Field(None, description="Dentro da caixa delimitadora (formato: ((x1,y1),(x2,y2)))")
     
-    @root_validator(pre=True)
-    def check_at_least_one_operator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='before')
+    @classmethod
+    def check_at_least_one_operator(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """Verifica se pelo menos um operador foi fornecido."""
-        if not any(op in values for op in [
+        if not isinstance(data, dict):
+            return data
+        if not any(op in data for op in [
             "distance", "near", "contains_point", "within", "intersects", "bounding_box"
         ]):
             raise ValueError("Pelo menos um operador geométrico deve ser fornecido")
-        return values
+        return data
     
-    @root_validator
-    def validate_geometric_format(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='after')
+    def validate_geometric_format(self) -> 'GeometricFilter':
         """Valida o formato dos valores geométricos."""
         # Validar formato de ponto (x,y)
         for field in ["near", "contains_point"]:
-            value = values.get(field)
+            value = getattr(self, field)
             if value is not None:
-                if not cls._is_valid_point_format(value):
+                if not self._is_valid_point_format(value):
                     raise ValueError(f"Formato inválido para {field}. Deve ser '(x,y)'")
         
         # Validar formato de caixa delimitadora ((x1,y1),(x2,y2))
-        if "bounding_box" in values and values["bounding_box"] is not None:
-            if not cls._is_valid_box_format(values["bounding_box"]):
+        if self.bounding_box is not None:
+            if not self._is_valid_box_format(self.bounding_box):
                 raise ValueError("Formato inválido para bounding_box. Deve ser '((x1,y1),(x2,y2))'")
         
-        return values
+        return self
     
     @staticmethod
     def _is_valid_point_format(value: str) -> bool:
@@ -267,27 +304,18 @@ class GeometricFilter(BaseModel):
             if len(points) != 2:
                 return False
             
-            # Validar cada ponto
-            point1 = "(" + points[0] + ")"
+            # Adicionar parênteses de volta para validação
+            point1 = "(" + points[0]
             point2 = "(" + points[1] + ")"
             
-            return GeometricFilter._is_valid_point_format(point1) and GeometricFilter._is_valid_point_format(point2)
+            # Validar ambos os pontos
+            return (
+                GeometricFilter._is_valid_point_format(point1) and 
+                GeometricFilter._is_valid_point_format(point2)
+            )
         except (ValueError, IndexError):
             return False
 
 
-# Tipo complexo para filtros
-FilterType = Union[
-    Any,  # Valor direto (igualdade simples)
-    ComparisonFilter,
-    TextFilter,
-    ListFilter,
-    NullFilter,
-    ArrayFilter,
-    JsonbFilter,
-    GeometricFilter,  # Novo tipo de filtro para geometria
-    Dict[str, Any]  # Dicionário genérico para outros filtros
-]
-
-# Tipo recursivo para filtros aninhados
-FiltersType = Dict[str, Union[FilterType, "FiltersType"]] 
+# Tipo para filtros genéricos
+FiltersType = Dict[str, Any] 

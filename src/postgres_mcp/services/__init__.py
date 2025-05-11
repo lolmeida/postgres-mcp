@@ -2,6 +2,8 @@
 Pacote de serviços para operações de negócio
 """
 
+from typing import Any
+
 from postgres_mcp.services.base import BaseService
 from postgres_mcp.services.schema import SchemaService
 from postgres_mcp.services.table import TableService
