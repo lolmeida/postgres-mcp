@@ -209,5 +209,5 @@ Para cada tarefa acima, seguir este processo:
 
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
-- **Fase atual**: Fase 5 - Implementação de Funcionalidades Avançadas (Em progresso)
-- **Progresso geral**: 88% 
+- **Fase atual**: Fase 6 - Testes (Em progresso)
+- **Progresso geral**: 95% 
