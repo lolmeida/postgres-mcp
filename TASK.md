@@ -75,6 +75,9 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
   - [x] BeginTransactionHandler
   - [x] CommitTransactionHandler
   - [x] RollbackTransactionHandler
+- [x] Implementar handlers para operações de cache:
+  - [x] GetCacheStatsHandler
+  - [x] ClearCacheHandler
 
 ## 🔍 Fase 5: Implementação de Funcionalidades Avançadas
 
@@ -138,7 +141,7 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 ### Otimização
 - [ ] Realizar análise de desempenho
 - [ ] Otimizar consultas SQL críticas
-- [ ] Implementar estratégias de cache
+- [x] Implementar estratégias de cache
 - [ ] Ajustar configurações de pool de conexões
 - [ ] Otimizar serialização/deserialização JSON
 
@@ -188,5 +191,5 @@ Para cada tarefa acima, seguir este processo:
 
 - **Data de início**: 2023-11-01
 - **Data prevista de conclusão**: 2024-05-30
-- **Fase atual**: Fase 4 - Implementação da Interface MCP (Concluída)
-- **Progresso geral**: 70% 
+- **Fase atual**: Fase 5 - Implementação de Funcionalidades Avançadas (Em progresso)
+- **Progresso geral**: 75% 
