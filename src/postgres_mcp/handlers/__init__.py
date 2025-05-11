@@ -14,6 +14,9 @@ from postgres_mcp.handlers.query import ExecuteQueryHandler
 from postgres_mcp.handlers.transaction import (
     BeginTransactionHandler, CommitTransactionHandler, RollbackTransactionHandler
 )
+from postgres_mcp.handlers.cache import (
+    GetCacheStatsHandler, ClearCacheHandler
+)
 
 __all__ = [
     'BaseHandler',
@@ -28,5 +31,7 @@ __all__ = [
     'ExecuteQueryHandler',
     'BeginTransactionHandler',
     'CommitTransactionHandler',
-    'RollbackTransactionHandler'
+    'RollbackTransactionHandler',
+    'GetCacheStatsHandler',
+    'ClearCacheHandler'
 ] 

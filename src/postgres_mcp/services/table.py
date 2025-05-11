@@ -18,6 +18,23 @@ class TableService(BaseService):
     de registros em tabelas PostgreSQL.
     """
     
+    def __init__(
+        self, 
+        repository: BaseRepository, 
+        logger: logging.Logger,
+        cache_service: Optional["CacheService"] = None
+    ):
+        """
+        Inicializa o serviço.
+        
+        Args:
+            repository: Repositório para acesso a dados
+            logger: Logger configurado
+            cache_service: Serviço de cache (opcional)
+        """
+        super().__init__(repository, logger)
+        self.cache_service = cache_service
+    
     async def read_table(
         self,
         table: str,
@@ -50,6 +67,27 @@ class TableService(BaseService):
             schema, table, filters, columns, order_by, ascending, limit, offset
         )
         
+        # Se tiver offset ou limit, não usamos cache para evitar inconsistências na paginação
+        use_cache = self.cache_service is not None and offset is None
+        
+        # Tentar obter do cache se não tiver offset (paginação)
+        if use_cache:
+            cached_data = await self.cache_service.get_cached_table_data(table, filters, schema)
+            if cached_data is not None:
+                self.logger.debug("Retornando dados do cache para tabela: %s.%s", schema, table)
+                
+                # Aplicar filtros adicionais em memória (order_by, limit) se necessário
+                result_data = cached_data
+                
+                # Se tiver limit, aplicamos aqui
+                if limit is not None:
+                    result_data = result_data[:limit]
+                
+                return {
+                    "data": result_data,
+                    "count": len(cached_data)
+                }
+        
         # Obter contagem total (sem limit/offset) para paginação
         count = await self.repository.count(table, filters, schema)
         
@@ -64,6 +102,10 @@ class TableService(BaseService):
             offset=offset,
             schema=schema
         )
+        
+        # Armazenar em cache se necessário e se não tiver limit ou offset
+        if use_cache and offset is None and (limit is None or limit >= count):
+            await self.cache_service.cache_table_data(table, data, filters, schema)
         
         return {
             "data": data,
@@ -94,12 +136,18 @@ class TableService(BaseService):
             schema, table, data, returning
         )
         
-        return await self.repository.create(
+        result = await self.repository.create(
             table=table,
             data=data,
             returning=returning,
             schema=schema
         )
+        
+        # Invalidar cache para a tabela modificada
+        if self.cache_service:
+            self.cache_service.invalidate_table(table, schema)
+        
+        return result
     
     async def create_batch(
         self,
@@ -125,12 +173,18 @@ class TableService(BaseService):
             schema, table, len(data), returning
         )
         
-        return await self.repository.create_many(
+        result = await self.repository.create_many(
             table=table,
             data=data,
             returning=returning,
             schema=schema
         )
+        
+        # Invalidar cache para a tabela modificada
+        if self.cache_service:
+            self.cache_service.invalidate_table(table, schema)
+        
+        return result
     
     async def update_records(
         self,
@@ -158,13 +212,19 @@ class TableService(BaseService):
             schema, table, filters, data, returning
         )
         
-        return await self.repository.update(
+        result = await self.repository.update(
             table=table,
             filters=filters,
             data=data,
             returning=returning,
             schema=schema
         )
+        
+        # Invalidar cache para a tabela modificada
+        if self.cache_service:
+            self.cache_service.invalidate_table(table, schema)
+        
+        return result
     
     async def delete_records(
         self,
@@ -190,9 +250,15 @@ class TableService(BaseService):
             schema, table, filters, returning
         )
         
-        return await self.repository.delete(
+        result = await self.repository.delete(
             table=table,
             filters=filters,
             returning=returning,
             schema=schema
-        ) 
+        )
+        
+        # Invalidar cache para a tabela modificada
+        if self.cache_service:
+            self.cache_service.invalidate_table(table, schema)
+        
+        return result 

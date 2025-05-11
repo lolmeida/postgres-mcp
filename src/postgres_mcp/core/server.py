@@ -300,11 +300,17 @@ class PostgresMCP:
         from postgres_mcp.services.schema import SchemaService
         from postgres_mcp.services.query import QueryService
         from postgres_mcp.services.transaction import TransactionService
+        from postgres_mcp.services.cache import CacheService
         
         # Instanciar serviços
-        self.services["table"] = TableService(self.repository, self.logger)
-        self.services["schema"] = SchemaService(self.repository, self.logger)
-        self.services["query"] = QueryService(self.repository, self.logger, self.config)
+        # O CacheService deve ser instanciado primeiro para ser passado aos outros serviços
+        self.services["cache"] = CacheService(self.repository, self.logger)
+        cache_service = self.services["cache"]
+        
+        # Instanciar outros serviços com referência ao CacheService
+        self.services["table"] = TableService(self.repository, self.logger, cache_service)
+        self.services["schema"] = SchemaService(self.repository, self.logger, cache_service)
+        self.services["query"] = QueryService(self.repository, self.logger, self.config, cache_service)
         self.services["transaction"] = TransactionService(self.repository, self.logger)
         
         self.logger.info("Serviços inicializados")
@@ -322,12 +328,16 @@ class PostgresMCP:
         from postgres_mcp.handlers.transaction import (
             BeginTransactionHandler, CommitTransactionHandler, RollbackTransactionHandler
         )
+        from postgres_mcp.handlers.cache import (
+            GetCacheStatsHandler, ClearCacheHandler
+        )
         
         # Extrair serviços
         table_service = self.services["table"]
         schema_service = self.services["schema"]
         query_service = self.services["query"]
         transaction_service = self.services["transaction"]
+        cache_service = self.services["cache"]
         
         # Registrar handlers de schema
         self.router.register_handler("list_schemas", ListSchemasHandler(schema_service))
@@ -348,6 +358,10 @@ class PostgresMCP:
         self.router.register_handler("begin_transaction", BeginTransactionHandler(transaction_service))
         self.router.register_handler("commit_transaction", CommitTransactionHandler(transaction_service))
         self.router.register_handler("rollback_transaction", RollbackTransactionHandler(transaction_service))
+        
+        # Registrar handlers de cache
+        self.router.register_handler("get_cache_stats", GetCacheStatsHandler(cache_service))
+        self.router.register_handler("clear_cache", ClearCacheHandler(cache_service))
         
         self.logger.info("Handlers inicializados e registrados")
     
