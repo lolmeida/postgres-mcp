@@ -1688,3 +1688,359 @@ function combined_example() {
 // Executar o exemplo
 combined_example();
 ```
+
+## Exemplos de Serviços Auxiliares
+
+Os exemplos a seguir mostram como utilizar os serviços auxiliares do PostgreSQL MCP em aplicações Node.js.
+
+### LoggingService - Configuração e Uso
+
+```javascript
+const { LoggingService } = require('mcp-postgres-js');
+
+// Inicialização do serviço com configuração personalizada
+const loggingService = new LoggingService({}, {
+  logDir: './logs',
+  level: 'debug',
+  enableConsole: true,
+  enableFileLogging: true,
+  rotation: {
+    maxSize: '10m',
+    maxFiles: 5,
+    datePattern: 'YYYY-MM-DD',
+    compress: true
+  },
+  defaultMeta: {
+    appName: 'minha-aplicacao',
+    environment: 'production'
+  }
+});
+
+// Inicialização do serviço
+await loggingService.initialize();
+
+// Logger principal
+const logger = loggingService.getLogger();
+logger.info('Aplicação iniciada');
+logger.debug('Informações de configuração', { config: { port: 3000, host: 'localhost' } });
+
+// Logger para um componente específico
+const dbLogger = loggingService.getComponentLogger('Database');
+dbLogger.info('Conexão com o banco de dados estabelecida');
+dbLogger.warn('Consulta lenta detectada', { query: 'SELECT * FROM produtos', duration: '150ms' });
+
+// Adicionando transporte de arquivo personalizado
+loggingService.addFileTransport(
+  'transacoes.log', 
+  'info', 
+  { maxSize: '50m', maxFiles: 10 }
+);
+
+// Registrando um erro com stack trace
+try {
+  throw new Error('Erro ao processar transação');
+} catch (error) {
+  loggingService.logError('Falha na operação de banco de dados', error, {
+    operacao: 'inserção',
+    tabela: 'pedidos'
+  });
+}
+
+// Adicionando metadados globais após a inicialização
+loggingService.addDefaultMetadata({
+  processId: process.pid,
+  sessionId: 'abc-123-xyz'
+});
+
+// Criando um logger filho com contexto específico
+const transactionLogger = loggingService.child({
+  transactionId: 'tx-12345',
+  userId: 'user-789'
+});
+
+transactionLogger.info('Iniciando transação');
+```
+
+### CacheService - Armazenamento e Recuperação
+
+```javascript
+const { CacheService } = require('mcp-postgres-js');
+
+// Inicialização do serviço com configuração personalizada
+const cacheService = new CacheService({
+  defaultTtl: 60 * 1000, // 1 minuto em milissegundos
+  maxItems: 1000,
+  checkInterval: 30 * 1000, // verificar itens expirados a cada 30 segundos
+  autoStart: true // inicia automaticamente a limpeza periódica
+});
+
+// Inicialização do serviço
+await cacheService.initialize();
+
+// Operações básicas - set e get
+cacheService.set('chave-simples', 'valor-string');
+cacheService.set('objeto-complexo', { id: 123, nome: 'Produto XYZ', preco: 99.99 });
+cacheService.set('lista-numeros', [1, 2, 3, 4, 5], { ttl: 5 * 60 * 1000 }); // 5 minutos
+
+// Recuperação com tipagem
+const valor = cacheService.get('chave-simples'); // string
+const produto = cacheService.get('objeto-complexo'); // objeto
+const numeros = cacheService.get<number[]>('lista-numeros'); // array de números
+
+// Armazenamento com tags para invalidação posterior
+cacheService.set('produto:123', { nome: 'Produto 123', estoque: 50 }, { tags: ['produtos', 'estoque'] });
+cacheService.set('produto:456', { nome: 'Produto 456', estoque: 10 }, { tags: ['produtos', 'estoque-baixo'] });
+
+// Invalidação por tag - remove todos os itens com a tag específica
+cacheService.invalidateByTag('estoque-baixo');
+
+// Padrão getOrSet - recupera do cache ou calcula e armazena
+const dadosUsuario = await cacheService.getOrSet(
+  'usuario:perfil:789',
+  async () => {
+    console.log('Cache miss - buscando dados do banco');
+    // Simulação de busca de dados
+    return { id: 789, nome: 'Ana Silva', email: 'ana@example.com' };
+  },
+  { ttl: 15 * 60 * 1000, tags: ['usuarios'] } // 15 minutos
+);
+
+// Verificando se uma chave existe
+if (cacheService.has('chave-simples')) {
+  console.log('A chave existe no cache');
+}
+
+// Removendo itens específicos
+cacheService.delete('objeto-complexo');
+
+// Obtendo estatísticas do cache
+const stats = cacheService.getStats();
+console.log(`Hits: ${stats.hits}, Misses: ${stats.misses}`);
+console.log(`Taxa de acerto: ${(stats.hitRate * 100).toFixed(2)}%`);
+console.log(`Itens em cache: ${stats.size}`);
+
+// Limpando todo o cache
+cacheService.clear();
+
+// Desligando o serviço de cache ao encerrar a aplicação
+await cacheService.shutdown();
+```
+
+### MetricsService - Monitoramento de Desempenho
+
+```javascript
+const { MetricsService } = require('mcp-postgres-js');
+
+// Inicialização do serviço com configuração personalizada
+const metricsService = new MetricsService({
+  enableDetailedMetrics: true,
+  trackMemoryUsage: true,
+  samplingRate: 1.0, // 100% das operações são rastreadas
+  maxHistoryItems: 1000
+});
+
+// Inicialização do serviço
+await metricsService.initialize();
+
+// Inscrevendo-se em eventos de métricas para logging ou alertas
+metricsService.subscribe('timing', (metric) => {
+  if (metric.duration > 500) {
+    console.warn(`Operação lenta detectada: ${metric.category}.${metric.name} - ${metric.duration}ms`);
+  }
+});
+
+metricsService.subscribe('counter', (metric) => {
+  console.log(`Contador atualizado: ${metric.name} = ${metric.value}`);
+});
+
+// Medindo tempo de execução de uma operação
+const resultado = await metricsService.measure(
+  'database',  // categoria
+  'query',     // nome da operação
+  async () => {
+    // Simulação de consulta ao banco
+    await new Promise(resolve => setTimeout(resolve, 200));
+    return { rows: [{ id: 1, nome: 'Teste' }] };
+  },
+  { query: 'SELECT * FROM tabela' }  // metadados adicionais
+);
+
+// Incrementando contadores para estatísticas
+metricsService.incrementCounter('queries-executadas', 'database');
+metricsService.incrementCounter('linhas-retornadas', 'database', resultado.rows.length);
+
+// Definindo valores de medidores (gauges)
+metricsService.setGauge('conexoes-ativas', 'database', 5);
+metricsService.setGauge('uso-memoria-mb', 'sistema', process.memoryUsage().heapUsed / 1024 / 1024);
+
+// Timing manual para operações complexas
+const timingId = metricsService.startTiming('operacao-complexa', 'aplicacao');
+
+try {
+  // Simulação de operação complexa
+  await new Promise(resolve => setTimeout(resolve, 300));
+  // Operação concluída com sucesso
+  metricsService.endTiming(timingId, true, { resultado: 'sucesso' });
+} catch (error) {
+  // Operação falhou
+  metricsService.endTiming(timingId, false, { erro: error.message });
+  throw error;
+}
+
+// Obtendo estatísticas de timing por categoria
+const dbStats = metricsService.getTimingStats('database');
+console.log(`Operações de database:`);
+console.log(`  Total: ${dbStats.count}`);
+console.log(`  Tempo médio: ${dbStats.avgTime.toFixed(2)}ms`);
+console.log(`  Tempo máximo: ${dbStats.maxTime.toFixed(2)}ms`);
+console.log(`  Taxa de sucesso: ${(dbStats.successRate * 100).toFixed(1)}%`);
+
+// Gerando relatório completo de métricas
+const report = metricsService.generateReport();
+console.log(`Relatório gerado em: ${report.timestamp}`);
+console.log(`Métricas coletadas: ${Object.keys(report.metrics).length}`);
+
+// Finalizando o serviço ao encerrar a aplicação
+await metricsService.shutdown();
+```
+
+### SecurityService - Controle de Acesso
+
+```javascript
+const { SecurityService, ResourceType, PermissionLevel } = require('mcp-postgres-js');
+
+// Inicialização do serviço com configuração personalizada
+const securityService = new SecurityService({
+  enabled: true,
+  strictMode: false, // em modo estrito, todas as operações exigem permissões explícitas
+  logEvents: true,   // registra eventos de segurança (para auditoria)
+  defaultPermission: PermissionLevel.NONE
+});
+
+// Inicialização do serviço
+await securityService.initialize();
+
+// Definindo papéis (roles) com permissões específicas
+const adminRole = {
+  name: 'admin',
+  description: 'Administrador com acesso total',
+  defaultPermission: PermissionLevel.ADMIN,
+  permissions: []
+};
+
+const editorRole = {
+  name: 'editor',
+  description: 'Editor com permissões de leitura/escrita em dados',
+  defaultPermission: PermissionLevel.READ,
+  permissions: [
+    {
+      resourceType: ResourceType.TABLE,
+      resourceName: 'public.usuarios',
+      permissionLevel: PermissionLevel.WRITE
+    },
+    {
+      resourceType: ResourceType.TABLE,
+      resourceName: 'public.produtos',
+      permissionLevel: PermissionLevel.WRITE
+    },
+    {
+      resourceType: ResourceType.SCHEMA,
+      resourceName: 'historico',
+      permissionLevel: PermissionLevel.READ
+    }
+  ]
+};
+
+const viewerRole = {
+  name: 'viewer',
+  description: 'Visualizador com permissões apenas de leitura',
+  defaultPermission: PermissionLevel.NONE,
+  permissions: [
+    {
+      resourceType: ResourceType.TABLE,
+      resourceName: 'public.produtos',
+      permissionLevel: PermissionLevel.READ
+    },
+    {
+      resourceType: ResourceType.TABLE,
+      resourceName: 'public.categorias',
+      permissionLevel: PermissionLevel.READ
+    }
+  ]
+};
+
+// Registrando os papéis
+securityService.registerRole(adminRole);
+securityService.registerRole(editorRole);
+securityService.registerRole(viewerRole);
+
+// Registrando usuários com seus papéis
+securityService.registerUser({
+  id: 'user-001',
+  username: 'admin',
+  email: 'admin@example.com',
+  roles: ['admin'],
+  active: true
+});
+
+securityService.registerUser({
+  id: 'user-002',
+  username: 'editor1',
+  email: 'editor@example.com',
+  roles: ['editor'],
+  active: true
+});
+
+securityService.registerUser({
+  id: 'user-003',
+  username: 'viewer1',
+  email: 'viewer@example.com',
+  roles: ['viewer'],
+  active: true
+});
+
+// Verificando permissões (retorna boolean)
+const canReadProdutos = securityService.hasPermission(
+  'user-003',                 // ID do usuário
+  ResourceType.TABLE,         // Tipo de recurso
+  'public.produtos',          // Nome do recurso
+  PermissionLevel.READ,       // Nível de permissão necessário
+  { operation: 'SELECT' }     // Metadados adicionais
+);
+
+const canWriteProdutos = securityService.hasPermission(
+  'user-003',
+  ResourceType.TABLE,
+  'public.produtos',
+  PermissionLevel.WRITE,
+  { operation: 'UPDATE' }
+);
+
+console.log(`Usuário viewer pode ler produtos: ${canReadProdutos}`);
+console.log(`Usuário viewer pode modificar produtos: ${canWriteProdutos}`);
+
+// Aplicando permissões (lança exceção se não permitido)
+try {
+  securityService.enforcePermission(
+    'user-002',
+    ResourceType.TABLE,
+    'public.usuarios',
+    PermissionLevel.WRITE,
+    { operation: 'INSERT' }
+  );
+  console.log('Permissão concedida para editor inserir usuários');
+} catch (error) {
+  console.error('Permissão negada:', error.message);
+}
+
+// Obtendo todos os papéis registrados
+const roles = securityService.listRoles();
+console.log(`Papéis registrados: ${roles.map(r => r.name).join(', ')}`);
+
+// Obtendo todas as permissões de um usuário
+const userPermissions = securityService.getUserPermissions('user-002');
+console.log('Permissões do editor:');
+userPermissions.forEach(p => {
+  console.log(`- ${p.resourceType}/${p.resourceName}: ${p.permissionLevel}`);
+});
+```

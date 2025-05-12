@@ -13,7 +13,7 @@ import { createComponentLogger } from '../utils/logger';
  * Structure for validation error details
  */
 export interface ValidationErrorDetail {
-  path: string[];
+  path: (string | number)[];  // Changed from string[] to support array indexes
   message: string;
   type: string;
   context?: Record<string, any>;
@@ -191,18 +191,16 @@ export class ValidationService extends AbstractService {
   /**
    * Creates a dynamic schema for a specific entity based on its properties
    * 
-   * @param entityType Type of entity (e.g. 'user', 'product')
    * @param requiredFields Array of field names that should be required
    * @param additionalFieldSchemas Additional schema definitions for specific fields
    * @returns Joi schema
    */
   createEntitySchema(
-    entityType: string,
     requiredFields: string[] = [],
     additionalFieldSchemas: Record<string, Joi.Schema> = {}
   ): Joi.Schema {
-    // Default schemas based on common field patterns
-    const defaultSchemas: Record<string, Joi.SchemaMap> = {
+    // Default schemas for common field patterns
+    const schemaMap: Joi.SchemaMap = {
       // Common field patterns
       id: Joi.alternatives().try(
         Joi.string().trim().max(100),
@@ -214,26 +212,16 @@ export class ValidationService extends AbstractService {
       status: Joi.string().trim().max(50),
       created_at: Joi.date(),
       updated_at: Joi.date(),
-      deleted_at: Joi.date().allow(null),
-      
-      // Add more default patterns as needed
+      deleted_at: Joi.date().allow(null)
     };
-    
-    // Build the entity schema
-    const schemaDefinition: Joi.SchemaMap = {};
-    
-    // Add the default schemas for recognized field names
-    Object.entries(defaultSchemas).forEach(([field, schema]) => {
-      schemaDefinition[field] = schema;
-    });
     
     // Override with additional field schemas
     Object.entries(additionalFieldSchemas).forEach(([field, schema]) => {
-      schemaDefinition[field] = schema;
+      schemaMap[field] = schema;
     });
     
     // Create the schema
-    let schema = Joi.object(schemaDefinition);
+    let schema = Joi.object(schemaMap);
     
     // Make fields required if specified
     if (requiredFields.length > 0) {

@@ -195,8 +195,7 @@ export class QueryService extends AbstractService {
       this.logger.error(`Query execution failed: ${error.message}`, error);
       throw new QueryException(
         `Query execution failed: ${error.message}`,
-        sql,
-        parameters
+        { sql, parameters }
       );
     }
   }

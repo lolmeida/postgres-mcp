@@ -12,7 +12,6 @@ import winston from 'winston';
 import 'winston-daily-rotate-file';
 import { AbstractService } from './ServiceBase';
 import { MCPConfig } from '../core/MCPConfig';
-import { createLogger, createComponentLogger } from '../utils/logger';
 
 /**
  * Log level type
@@ -93,7 +92,7 @@ export interface LoggingServiceConfig {
  * Service for advanced logging capabilities
  */
 export class LoggingService extends AbstractService {
-  private logger: winston.Logger;
+  private logger!: winston.Logger;
   private config: LoggingServiceConfig;
   private transports: winston.transport[] = [];
   private rotatingFileTransports: Map<string, winston.transport> = new Map();
@@ -106,7 +105,7 @@ export class LoggingService extends AbstractService {
    * @param serviceConfig Logging service configuration
    */
   constructor(
-    private mcpConfig: Partial<MCPConfig> = {},
+    mcpConfig: Partial<MCPConfig> = {},
     serviceConfig: LoggingServiceConfig = {}
   ) {
     super();
@@ -319,11 +318,6 @@ export class LoggingService extends AbstractService {
       })
     );
     
-    const fileFormat = this.config.fileFormat || winston.format.combine(
-      baseFormat,
-      winston.format.json()
-    );
-    
     // Create transports
     this.transports = [];
     
@@ -338,7 +332,11 @@ export class LoggingService extends AbstractService {
     this.logger = winston.createLogger({
       level: this.config.level,
       defaultMeta: this.config.defaultMeta,
-      transports: this.transports
+      transports: this.transports,
+      format: this.config.fileFormat || winston.format.combine(
+        baseFormat,
+        winston.format.json()
+      )
     });
     
     // Add file transports if enabled

@@ -10,7 +10,6 @@ import { AbstractService } from './ServiceBase';
 import { PostgresConnection } from '../database/PostgresConnection';
 import { PostgresRepository } from '../repositories/PostgresRepository';
 import { createComponentLogger } from '../utils/logger';
-import { TableInfo } from '../core/types';
 
 /**
  * Represents a table operation result
@@ -34,7 +33,7 @@ export interface TableFilterOptions {
 /**
  * Generic repository factory function type
  */
-type RepositoryFactory<T> = (connection: PostgresConnection, tableName: string, schemaName: string) => PostgresRepository<T>;
+type RepositoryFactory<T extends Record<string, any>> = (connection: PostgresConnection, tableName: string, schemaName: string) => PostgresRepository<T>;
 
 /**
  * Service for table operations

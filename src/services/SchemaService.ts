@@ -7,7 +7,8 @@
 
 import { AbstractService } from './ServiceBase';
 import { PostgresConnection } from '../database/PostgresConnection';
-import { PostgresSchemaManager, SchemaInfo, TableInfo, ColumnInfo } from '../database/PostgresSchemaManager';
+import { PostgresSchemaManager } from '../database/PostgresSchemaManager';
+import { TableInfo, ColumnInfo } from '../core/types';
 import { createComponentLogger } from '../utils/logger';
 
 /**
@@ -82,7 +83,7 @@ export class SchemaService extends AbstractService {
    * 
    * @param connection PostgreSQL connection
    */
-  constructor(private connection: PostgresConnection) {
+  constructor(connection: PostgresConnection) {
     super();
     this.logger = createComponentLogger('SchemaService');
     this.schemaManager = new PostgresSchemaManager(connection);
@@ -102,7 +103,7 @@ export class SchemaService extends AbstractService {
    * @param options Options for listing schemas
    * @returns List of schema information
    */
-  async listSchemas(options: SchemaListOptions = {}): Promise<SchemaInfo[]> {
+  async listSchemas(options: SchemaListOptions = {}): Promise<any[]> {
     try {
       const includeSystem = options.includeSystem || false;
       const limit = options.limit || 100;
@@ -152,7 +153,31 @@ export class SchemaService extends AbstractService {
         );
       }
       
-      const tables = await this.schemaManager.listTables(schemaName, includeViews);
+      // Map PostgresSchemaManager's TableInfo to our core TableInfo
+      const pgTables = await this.schemaManager.listTables(schemaName, includeViews);
+      const tables: TableInfo[] = [];
+      
+      for (const pgTable of pgTables) {
+        const columns = await this.schemaManager.getTableColumns(pgTable.tableName, schemaName);
+        const mappedColumns: ColumnInfo[] = columns.map(col => ({
+          name: col.columnName,
+          type: col.dataType,
+          description: col.description,
+          isNullable: col.isNullable,
+          isPrimaryKey: false, // Will be set later if needed
+          isForeignKey: false, // Will be set later if needed
+          isUnique: false,     // Will be set later if needed
+          defaultValue: col.columnDefault
+        }));
+        
+        tables.push({
+          name: pgTable.tableName,
+          schema: pgTable.schemaName,
+          description: pgTable.description,
+          columns: mappedColumns,
+          isView: pgTable.tableType === 'VIEW' || pgTable.tableType === 'MATERIALIZED_VIEW'
+        });
+      }
       
       // Apply pagination
       return tables.slice(offset, offset + limit);
@@ -182,15 +207,14 @@ export class SchemaService extends AbstractService {
     try {
       const includeRelations = options.includeRelations ?? true;
       const includeIndexes = options.includeIndexes ?? true;
-      const includeComments = options.includeComments ?? true;
       
       this.logger.debug(`Getting details for table ${schemaName}.${tableName}`, options);
       
       // First check if table exists
-      const tables = await this.schemaManager.listTables(schemaName, true);
-      const table = tables.find(t => t.name === tableName);
+      const pgTables = await this.schemaManager.listTables(schemaName, true);
+      const pgTable = pgTables.find(t => t.tableName === tableName);
       
-      if (!table) {
+      if (!pgTable) {
         throw this.createError(
           `Table "${schemaName}.${tableName}" does not exist`,
           'validation_error'
@@ -198,38 +222,66 @@ export class SchemaService extends AbstractService {
       }
       
       // Get columns
-      const columns = await this.schemaManager.listTableColumns(tableName, schemaName);
+      const pgColumns = await this.schemaManager.getTableColumns(tableName, schemaName);
       
       // Get primary key
-      const primaryKey = await this.schemaManager.getPrimaryKey(tableName, schemaName);
+      const primaryKeyColumns = await this.schemaManager.getPrimaryKeyColumns(tableName, schemaName);
       
-      // Get foreign keys if requested
-      let foreignKeys = undefined;
+      // Get constraints for foreign keys
+      interface ForeignKeyInfo {
+        columns: string[];
+        referencedTable: string;
+        referencedSchema: string;
+        referencedColumns: string[];
+      }
+      
+      let foreignKeys: ForeignKeyInfo[] | undefined = undefined;
       if (includeRelations) {
-        foreignKeys = await this.schemaManager.getForeignKeys(tableName, schemaName);
+        const constraints = await this.schemaManager.getTableConstraints(tableName, schemaName);
+        foreignKeys = constraints
+          .filter(c => c.constraintType === 'FOREIGN KEY')
+          .map(fk => ({
+            columns: fk.columnNames || [],
+            referencedTable: fk.foreignTable || '',
+            referencedSchema: fk.foreignSchema || '',
+            referencedColumns: fk.foreignColumns || []
+          }));
       }
       
-      // Get indexes if requested
-      let indexes = undefined;
+      // Get indexes - already handled by PostgresSchemaManager
       if (includeIndexes) {
-        indexes = await this.schemaManager.getTableIndexes(tableName, schemaName);
+        await this.schemaManager.getTableIndexes(tableName, schemaName);
       }
       
-      // Get comments/descriptions if requested
-      let description = table.description;
-      if (includeComments && !description) {
-        description = await this.schemaManager.getTableDescription(tableName, schemaName);
-      }
+      // Map columns
+      const columns: ColumnInfo[] = pgColumns.map(col => {
+        const isPrimaryKey = primaryKeyColumns.includes(col.columnName);
+        // Check if column is part of any foreign key
+        const isForeignKey = foreignKeys?.some(fk => 
+          (fk.columns || []).includes(col.columnName)
+        ) || false;
+        
+        return {
+          name: col.columnName,
+          type: col.dataType,
+          description: col.description,
+          isNullable: col.isNullable,
+          isPrimaryKey,
+          isForeignKey,
+          isUnique: false, // Would need to check constraints/indexes
+          defaultValue: col.columnDefault
+        };
+      });
       
       // Combine everything into a comprehensive table info object
       return {
         name: tableName,
         schema: schemaName,
-        description,
+        description: pgTable.description,
         columns,
-        primaryKey: primaryKey?.columnNames,
+        primaryKey: primaryKeyColumns,
         foreignKeys,
-        isView: table.isView
+        isView: pgTable.tableType === 'VIEW' || pgTable.tableType === 'MATERIALIZED_VIEW'
       };
     } catch (error: any) {
       this.logger.error(`Error getting details for table ${schemaName}.${tableName}`, error);
@@ -250,34 +302,45 @@ export class SchemaService extends AbstractService {
    */
   async tableExists(tableName: string, schemaName: string = 'public'): Promise<boolean> {
     try {
-      this.logger.debug(`Checking if table ${schemaName}.${tableName} exists`);
-      return await this.schemaManager.tableExists(tableName, schemaName);
+      const pgTables = await this.schemaManager.listTables(schemaName, true);
+      return pgTables.some(t => t.tableName === tableName);
     } catch (error: any) {
-      this.logger.error(`Error checking if table ${schemaName}.${tableName} exists`, error);
+      this.logger.error(`Error checking if table exists: ${schemaName}.${tableName}`, error);
       throw this.createError(
         `Failed to check if table exists: ${error.message}`,
-        'database_error',
+        error.errorType || 'database_error',
         error.details
       );
     }
   }
   
   /**
-   * Gets column information for a table
+   * Gets columns for a table
    * 
    * @param tableName Table name
    * @param schemaName Schema name
-   * @returns List of column information
+   * @returns List of columns
    */
   async getTableColumns(tableName: string, schemaName: string = 'public'): Promise<ColumnInfo[]> {
     try {
-      this.logger.debug(`Getting columns for table ${schemaName}.${tableName}`);
-      return await this.schemaManager.listTableColumns(tableName, schemaName);
+      const pgColumns = await this.schemaManager.getTableColumns(tableName, schemaName);
+      
+      // Convert from PostgresSchemaManager's ColumnInfo to our core ColumnInfo
+      return pgColumns.map(col => ({
+        name: col.columnName,
+        type: col.dataType,
+        description: col.description,
+        isNullable: col.isNullable,
+        isPrimaryKey: false, // Would need more info
+        isForeignKey: false, // Would need more info
+        isUnique: false,     // Would need more info
+        defaultValue: col.columnDefault
+      }));
     } catch (error: any) {
-      this.logger.error(`Error getting columns for table ${schemaName}.${tableName}`, error);
+      this.logger.error(`Error getting columns for table: ${schemaName}.${tableName}`, error);
       throw this.createError(
         `Failed to get table columns: ${error.message}`,
-        'database_error',
+        error.errorType || 'database_error',
         error.details
       );
     }
