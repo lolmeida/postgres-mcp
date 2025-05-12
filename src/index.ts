@@ -1,71 +1,33 @@
 /**
- * PostgreSQL MCP - Implementação JavaScript/TypeScript do Model Context Protocol para PostgreSQL
+ * PostgreSQL MCP - Model Context Protocol implementation for PostgreSQL in JavaScript/TypeScript
  * 
- * Este arquivo é o ponto de entrada principal da biblioteca, exportando todas as classes
- * e interfaces públicas que podem ser utilizadas pelos consumidores da biblioteca.
+ * This is the main entry point of the library, exporting all public classes and interfaces
+ * that can be used by library consumers.
  */
 
 // Core
-import { PostgresMCPServer } from './core/PostgresMCPServer';
-import { MCPConfig } from './core/MCPConfig';
-import { MCPRouter } from './core/MCPRouter';
-import { MCPRequest, MCPResponse, MCPError, MCPErrorType, TableInfo, ColumnInfo } from './core/types';
+export * from './core/MCPConfig';
+export * from './core/PostgresMCPServer';
+export * from './core/MCPRouter';
 
-// Handlers
-import { HandlerBase, AbstractHandler } from './handlers/HandlerBase';
+// Database
+export * from './database/PostgresConfig';
+export * from './database/PostgresConnection';
+export * from './database/PostgresConnectionManager';
+export * from './database/PostgresSchemaManager';
+export * from './database/PostgresQueryBuilder';
 
-// Services
-import { ServiceBase, AbstractService } from './services/ServiceBase';
-
-// Repositories
-import { RepositoryBase, AbstractRepository, DbOperationOptions } from './repositories/RepositoryBase';
+// Interfaces
+export * from './handlers/HandlerBase';
+export * from './services/ServiceBase';
+export * from './repositories/RepositoryBase';
+export * from './repositories/PostgresRepository';
 
 // Utils
-import { createLogger, createComponentLogger } from './utils/logger';
-import { 
-  MCPException, ValidationException, DatabaseException, 
-  QueryException, SecurityException, TransactionException, 
-  InternalException, transformDbError 
-} from './utils/exceptions';
+export * from './utils/exceptions';
+export * from './utils/logger';
+export * from './utils/ValidationSchemas';
 
-// Exportação de componentes públicos
-export {
-  // Core
-  PostgresMCPServer,
-  MCPConfig,
-  MCPRouter,
-  MCPRequest,
-  MCPResponse,
-  MCPError,
-  MCPErrorType,
-  TableInfo,
-  ColumnInfo,
-  
-  // Handlers
-  HandlerBase,
-  AbstractHandler,
-  
-  // Services
-  ServiceBase,
-  AbstractService,
-  
-  // Repositories
-  RepositoryBase,
-  AbstractRepository,
-  DbOperationOptions,
-  
-  // Utils
-  createLogger,
-  createComponentLogger,
-  MCPException,
-  ValidationException,
-  DatabaseException,
-  QueryException,
-  SecurityException,
-  TransactionException,
-  InternalException,
-  transformDbError
-};
-
-// Exportação padrão para facilitar o uso
+// Default export for easier usage
+import { PostgresMCPServer } from './core/PostgresMCPServer';
 export default PostgresMCPServer; 

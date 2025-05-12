@@ -21,18 +21,18 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 ## 🏗️ Fase 2: Implementação da Camada de Conexão PostgreSQL
 
 ### Cliente PostgreSQL
-- [ ] Implementar classes de configuração para conexão PostgreSQL
-- [ ] Desenvolver gerenciamento de pool de conexões com node-postgres
-- [ ] Implementar gerenciamento de transações
-- [ ] Adicionar suporte a SSL/TLS para conexões seguras
-- [ ] Criar sistema de manipulação de erros
+- [x] Implementar classes de configuração para conexão PostgreSQL
+- [x] Desenvolver gerenciamento de pool de conexões com node-postgres
+- [x] Implementar gerenciamento de transações
+- [x] Adicionar suporte a SSL/TLS para conexões seguras
+- [x] Criar sistema de manipulação de erros
 
 ### Camada de Repositório
-- [ ] Implementar BaseRepository com operações CRUD genéricas
-- [ ] Criar funcionalidades para operações em tabelas
-- [ ] Implementar funcionalidades para operações em schemas
-- [ ] Desenvolver QueryBuilder para construção dinâmica de consultas SQL
-- [ ] Adicionar suporte a transações
+- [x] Implementar BaseRepository com operações CRUD genéricas
+- [x] Criar funcionalidades para operações em tabelas
+- [x] Implementar funcionalidades para operações em schemas
+- [x] Desenvolver QueryBuilder para construção dinâmica de consultas SQL
+- [x] Adicionar suporte a transações
 
 ## 🧩 Fase 3: Implementação da Camada de Serviços
 
@@ -219,5 +219,5 @@ Para cada tarefa acima, seguir este processo:
 
 - **Data de início**: 2024-05-01
 - **Data prevista de conclusão**: 2024-09-30
-- **Fase atual**: Fase 2 - Implementação da Camada de Conexão PostgreSQL (Em andamento)
-- **Progresso geral**: 10% 
+- **Fase atual**: Fase 3 - Implementação da Camada de Serviços (Em andamento)
+- **Progresso geral**: 30% 
