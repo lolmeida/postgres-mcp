@@ -1,152 +1,78 @@
 /**
- * PostgreSQL Repository
+ * PostgreSQL Repository implementation
  * 
- * Base repository implementation for PostgreSQL database access.
- * Provides common CRUD operations and transaction support.
+ * Base repository implementation for PostgreSQL database operations
+ * with common CRUD operations and transaction support.
  */
 
-import { RepositoryBase } from './RepositoryBase';
-import { PostgresConnection } from '../database/PostgresConnection';
-import { PostgresQueryBuilder, ConditionOperator, OrderDirection } from '../database/PostgresQueryBuilder';
-import { QueryException, DatabaseException } from '../utils/exceptions';
+import { PoolClient } from 'pg';
+import { DatabaseException } from '../utils/exceptions';
 import { createComponentLogger } from '../utils/logger';
+import { PostgresConnection } from '../database/PostgresConnection';
+import { ConditionOperator, PostgresQueryBuilder } from '../database/PostgresQueryBuilder';
 
 /**
- * Options for find operations
+ * Type for entity identifiers
  */
-export interface FindOptions {
-  limit?: number;
-  offset?: number;
-  orderBy?: { field: string; direction?: OrderDirection };
-  relations?: string[];
-}
+export type EntityId = string | number;
 
 /**
- * Base PostgreSQL repository implementation
+ * Transaction callback type
  */
-export abstract class PostgresRepository<T extends Record<string, any>> implements RepositoryBase<T> {
-  protected connection: PostgresConnection;
-  protected tableName: string;
-  protected primaryKey: string;
-  protected logger = createComponentLogger('PostgresRepository');
+export type TransactionCallback<T extends Record<string, any>, R> = (repository: PostgresRepository<T>) => Promise<R>;
+
+/**
+ * Base PostgreSQL repository with generic CRUD operations
+ */
+export abstract class PostgresRepository<T extends Record<string, any>> {
+  /**
+   * Logger for this repository
+   */
+  protected logger;
+  
+  /**
+   * Current client for transaction support
+   */
+  protected client: PoolClient | null = null;
 
   /**
-   * Creates a new PostgreSQL repository
+   * Creates a new repository
    * 
    * @param connection PostgreSQL connection
-   * @param tableName Table name
-   * @param primaryKey Primary key field name (default: 'id')
+   * @param tableName Database table name
+   * @param schemaName Database schema name (defaults to 'public')
    */
-  constructor(connection: PostgresConnection, tableName: string, primaryKey: string = 'id') {
-    this.connection = connection;
-    this.tableName = tableName;
-    this.primaryKey = primaryKey;
-    this.logger.debug(`Repository initialized for table: ${tableName}`);
+  constructor(
+    protected connection: PostgresConnection,
+    protected tableName: string,
+    protected schemaName: string = 'public'
+  ) {
+    this.logger = createComponentLogger(`PostgresRepository:${tableName}`);
+  }
+
+  /**
+   * Initialize the repository
+   */
+  async initialize(): Promise<void> {
+    // Default implementation does nothing
+    return Promise.resolve();
   }
 
   /**
    * Maps a database row to an entity
    * 
    * @param row Database row
-   * @returns Entity object
+   * @returns Entity instance
    */
   protected abstract mapToEntity(row: Record<string, any>): T;
 
   /**
    * Maps an entity to a database row
    * 
-   * @param entity Entity object
-   * @returns Database row
+   * @param entity Entity to map
+   * @returns Database row representation
    */
   protected abstract mapToRow(entity: T): Record<string, any>;
-
-  /**
-   * Finds all entities matching the given criteria
-   * 
-   * @param criteria Search criteria
-   * @param options Find options
-   * @returns Array of entities
-   */
-  async findAll(criteria: Partial<T> = {}, options: FindOptions = {}): Promise<T[]> {
-    try {
-      const queryBuilder = new PostgresQueryBuilder()
-        .select()
-        .from(this.tableName);
-
-      // Apply search criteria as WHERE conditions
-      Object.entries(criteria).forEach(([field, value]) => {
-        if (value !== undefined) {
-          if (value === null) {
-            queryBuilder.where(field, ConditionOperator.IS_NULL);
-          } else if (Array.isArray(value)) {
-            queryBuilder.where(field, ConditionOperator.IN, value);
-          } else {
-            queryBuilder.where(field, ConditionOperator.EQUALS, value);
-          }
-        }
-      });
-
-      // Apply pagination
-      if (options.limit !== undefined) {
-        queryBuilder.limit(options.limit);
-      }
-      
-      if (options.offset !== undefined) {
-        queryBuilder.offset(options.offset);
-      }
-
-      // Apply ordering
-      if (options.orderBy) {
-        queryBuilder.orderBy(
-          options.orderBy.field,
-          options.orderBy.direction || OrderDirection.ASC
-        );
-      }
-
-      // Execute the query
-      const query = queryBuilder.buildQuery();
-      const params = queryBuilder.getParameters();
-      this.logger.debug(`Executing findAll query: ${query} with params: ${JSON.stringify(params)}`);
-      
-      const result = await this.connection.query(query, params);
-      return result.rows.map(row => this.mapToEntity(row));
-    } catch (error: any) {
-      this.logger.error('Error in findAll', error);
-      throw new DatabaseException(`Error in findAll: ${error.message}`, error);
-    }
-  }
-
-  /**
-   * Finds one entity matching the given criteria
-   * 
-   * @param criteria Search criteria
-   * @returns Entity or null if not found
-   */
-  async findOne(criteria: Partial<T> = {}): Promise<T | null> {
-    try {
-      const results = await this.findAll(criteria, { limit: 1 });
-      return results.length > 0 ? results[0] : null;
-    } catch (error: any) {
-      this.logger.error('Error in findOne', error);
-      throw new DatabaseException(`Error in findOne: ${error.message}`, error);
-    }
-  }
-
-  /**
-   * Finds an entity by its primary key
-   * 
-   * @param id Primary key value
-   * @returns Entity or null if not found
-   */
-  async findById(id: string | number): Promise<T | null> {
-    try {
-      const criteria = { [this.primaryKey]: id } as Partial<T>;
-      return await this.findOne(criteria);
-    } catch (error: any) {
-      this.logger.error(`Error in findById: ${id}`, error);
-      throw new DatabaseException(`Error in findById: ${error.message}`, error);
-    }
-  }
 
   /**
    * Creates a new entity
@@ -155,190 +81,187 @@ export abstract class PostgresRepository<T extends Record<string, any>> implemen
    * @returns Created entity with generated ID
    */
   async create(entity: T): Promise<T> {
-    try {
-      const row = this.mapToRow(entity);
-      
-      const queryBuilder = new PostgresQueryBuilder()
-        .insert(this.tableName, row)
-        .returning(['*']);
-      
-      const query = queryBuilder.buildQuery();
-      const params = queryBuilder.getParameters();
-      this.logger.debug(`Executing create query: ${query} with params: ${JSON.stringify(params)}`);
-      
-      const result = await this.connection.query(query, params);
-      return this.mapToEntity(result.rows[0]);
-    } catch (error: any) {
-      this.logger.error('Error in create', error);
-      throw new DatabaseException(`Error in create: ${error.message}`, error);
-    }
+    const row = this.mapToRow(entity);
+    
+    const columns = Object.keys(row);
+    const values = Object.values(row);
+    const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+    
+    const query = `
+      INSERT INTO ${this.schemaName}.${this.tableName} 
+      (${columns.join(', ')}) 
+      VALUES (${placeholders})
+      RETURNING *
+    `;
+    
+    const result = await this.executeQuery(query, values);
+    return this.mapToEntity(result.rows[0]);
   }
 
   /**
-   * Updates an existing entity
+   * Finds all entities with optional limit/offset
    * 
-   * @param id Primary key value
-   * @param entity Entity data to update
+   * @param limit Maximum number of entities to return
+   * @param offset Number of entities to skip
+   * @returns Array of entities
+   */
+  async findAll(limit: number = 100, offset: number = 0): Promise<T[]> {
+    const queryBuilder = new PostgresQueryBuilder()
+      .select(['*'])
+      .from(`${this.schemaName}.${this.tableName}`)
+      .limit(limit)
+      .offset(offset);
+    
+    const query = queryBuilder.buildQuery();
+    const params = queryBuilder.getParameters();
+    
+    const result = await this.executeQuery(query, params);
+    return result.rows.map((row: Record<string, any>) => this.mapToEntity(row));
+  }
+
+  /**
+   * Finds an entity by its ID
+   * 
+   * @param id Entity ID
+   * @returns Entity or null if not found
+   */
+  async findById(id: EntityId): Promise<T | null> {
+    const queryBuilder = new PostgresQueryBuilder()
+      .select(['*'])
+      .from(`${this.schemaName}.${this.tableName}`)
+      .where('id', ConditionOperator.EQUALS, id);
+    
+    const query = queryBuilder.buildQuery();
+    const params = queryBuilder.getParameters();
+    
+    const result = await this.executeQuery(query, params);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return this.mapToEntity(result.rows[0]);
+  }
+
+  /**
+   * Updates an entity by ID
+   * 
+   * @param id Entity ID
+   * @param updates Partial entity with fields to update
    * @returns Updated entity
    */
-  async update(id: string | number, entity: Partial<T>): Promise<T | null> {
-    try {
-      const row = this.mapToRow(entity as T);
-      
-      // Remove primary key from update data if present
-      delete row[this.primaryKey];
-      
-      // If there's nothing to update, return the current entity
-      if (Object.keys(row).length === 0) {
-        return this.findById(id);
-      }
-      
-      const queryBuilder = new PostgresQueryBuilder()
-        .update(this.tableName, row)
-        .where(this.primaryKey, ConditionOperator.EQUALS, id)
-        .returning(['*']);
-      
-      const query = queryBuilder.buildQuery();
-      const params = queryBuilder.getParameters();
-      this.logger.debug(`Executing update query: ${query} with params: ${JSON.stringify(params)}`);
-      
-      const result = await this.connection.query(query, params);
-      
-      if (result.rowCount === 0) {
-        return null;
-      }
-      
-      return this.mapToEntity(result.rows[0]);
-    } catch (error: any) {
-      this.logger.error(`Error in update: ${id}`, error);
-      throw new DatabaseException(`Error in update: ${error.message}`, error);
+  async update(id: EntityId, updates: Partial<T>): Promise<T> {
+    const row = this.mapToRow(updates as T);
+    
+    // Don't update ID field
+    delete row.id;
+    
+    if (Object.keys(row).length === 0) {
+      throw new DatabaseException('No fields to update');
     }
+    
+    const sets = Object.entries(row).map(([column, _], i) => `${column} = $${i + 1}`);
+    const values = Object.values(row);
+    
+    // Add ID as the last parameter
+    const query = `
+      UPDATE ${this.schemaName}.${this.tableName}
+      SET ${sets.join(', ')}
+      WHERE id = $${values.length + 1}
+      RETURNING *
+    `;
+    
+    values.push(id);
+    
+    const result = await this.executeQuery(query, values);
+    
+    if (result.rows.length === 0) {
+      throw new DatabaseException(`Entity with ID ${id} not found`);
+    }
+    
+    return this.mapToEntity(result.rows[0]);
   }
 
   /**
-   * Deletes an entity by its primary key
+   * Deletes an entity by ID
    * 
-   * @param id Primary key value
-   * @returns true if deleted, false if not found
+   * @param id Entity ID
+   * @returns True if entity was deleted, false if not found
    */
-  async delete(id: string | number): Promise<boolean> {
-    try {
-      const queryBuilder = new PostgresQueryBuilder()
-        .delete(this.tableName)
-        .where(this.primaryKey, ConditionOperator.EQUALS, id);
-      
-      const query = queryBuilder.buildQuery();
-      const params = queryBuilder.getParameters();
-      this.logger.debug(`Executing delete query: ${query} with params: ${JSON.stringify(params)}`);
-      
-      const result = await this.connection.query(query, params);
-      return result.rowCount > 0;
-    } catch (error: any) {
-      this.logger.error(`Error in delete: ${id}`, error);
-      throw new DatabaseException(`Error in delete: ${error.message}`, error);
-    }
+  async delete(id: EntityId): Promise<boolean> {
+    const query = `
+      DELETE FROM ${this.schemaName}.${this.tableName}
+      WHERE id = $1
+      RETURNING id
+    `;
+    
+    const result = await this.executeQuery(query, [id]);
+    return result.rows.length > 0;
   }
 
   /**
-   * Executes a raw SQL query
+   * Counts entities with optional filter
    * 
-   * @param sql SQL query
+   * @param filter Optional filter condition
+   * @returns Number of entities
+   */
+  async count(filter?: Record<string, any>): Promise<number> {
+    const queryBuilder = new PostgresQueryBuilder()
+      .select(['COUNT(*) as count'])
+      .from(`${this.schemaName}.${this.tableName}`);
+    
+    if (filter) {
+      Object.entries(filter).forEach(([column, value]) => {
+        queryBuilder.where(column, ConditionOperator.EQUALS, value);
+      });
+    }
+    
+    const query = queryBuilder.buildQuery();
+    const params = queryBuilder.getParameters();
+    
+    const result = await this.executeQuery(query, params);
+    return parseInt(result.rows[0].count, 10);
+  }
+
+  /**
+   * Helper method to execute queries through the connection
+   * 
+   * @param text SQL query text
    * @param params Query parameters
    * @returns Query result
    */
-  async query(sql: string, params: any[] = []): Promise<any> {
-    try {
-      this.logger.debug(`Executing raw query: ${sql} with params: ${JSON.stringify(params)}`);
-      return await this.connection.query(sql, params);
-    } catch (error: any) {
-      this.logger.error('Error in query execution', error);
-      throw new DatabaseException(`Error in query execution: ${error.message}`, error);
+  private async executeQuery(text: string, params?: any[]): Promise<any> {
+    if (this.client) {
+      return this.client.query(text, params);
     }
+    return this.connection.query(text, params);
   }
 
   /**
-   * Executes a function within a transaction
+   * Executes operations in a transaction
    * 
-   * @param callback Function to execute within the transaction
-   * @returns Result of the callback function
+   * @param callback Callback to execute within transaction
+   * @returns Result of the transaction callback
    */
-  async withTransaction<R>(callback: (repository: this) => Promise<R>): Promise<R> {
-    // Start a transaction
+  async withTransaction<R>(callback: TransactionCallback<T, R>): Promise<R> {
     const client = await this.connection.getClient();
     
     try {
       await client.query('BEGIN');
       
-      // Create a temporary repository with the transaction client
-      const transactionRepo = Object.create(this);
-      transactionRepo.connection = {
-        query: (sql: string, params: any[] = []) => client.query(sql, params),
-        getClient: () => Promise.resolve(client)
-      } as any;
+      // Create a new transactional repository
+      const transactionalRepo = Object.create(this);
+      transactionalRepo.client = client;
       
-      // Execute the callback with the transactional repository
-      const result = await callback(transactionRepo);
+      const result = await callback(transactionalRepo);
       
-      // Commit the transaction
       await client.query('COMMIT');
-      
       return result;
-    } catch (error: any) {
-      // Rollback the transaction on error
+    } catch (error) {
       await client.query('ROLLBACK');
-      this.logger.error('Transaction rolled back', error);
-      throw new DatabaseException(`Transaction failed: ${error.message}`, error);
+      throw error;
     } finally {
-      // Release the client back to the pool
       client.release();
     }
-  }
-
-  /**
-   * Counts entities matching the given criteria
-   * 
-   * @param criteria Search criteria
-   * @returns Number of matching entities
-   */
-  async count(criteria: Partial<T> = {}): Promise<number> {
-    try {
-      const queryBuilder = new PostgresQueryBuilder()
-        .select(['COUNT(*) as count'])
-        .from(this.tableName);
-
-      // Apply search criteria as WHERE conditions
-      Object.entries(criteria).forEach(([field, value]) => {
-        if (value !== undefined) {
-          if (value === null) {
-            queryBuilder.where(field, ConditionOperator.IS_NULL);
-          } else if (Array.isArray(value)) {
-            queryBuilder.where(field, ConditionOperator.IN, value);
-          } else {
-            queryBuilder.where(field, ConditionOperator.EQUALS, value);
-          }
-        }
-      });
-
-      const query = queryBuilder.buildQuery();
-      const params = queryBuilder.getParameters();
-      this.logger.debug(`Executing count query: ${query} with params: ${JSON.stringify(params)}`);
-      
-      const result = await this.connection.query(query, params);
-      return parseInt(result.rows[0].count, 10);
-    } catch (error: any) {
-      this.logger.error('Error in count', error);
-      throw new DatabaseException(`Error in count: ${error.message}`, error);
-    }
-  }
-
-  /**
-   * Checks if any entity matches the given criteria
-   * 
-   * @param criteria Search criteria
-   * @returns True if at least one entity matches, false otherwise
-   */
-  async exists(criteria: Partial<T> = {}): Promise<boolean> {
-    const count = await this.count(criteria);
-    return count > 0;
   }
 } 

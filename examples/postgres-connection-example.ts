@@ -80,7 +80,7 @@ class UserRepository extends PostgresRepository<User> {
     const params = queryBuilder.getParameters();
     
     const result = await this.connection.query(query, params);
-    return result.rows.map(row => this.mapToEntity(row));
+    return result.rows.map((row: any) => this.mapToEntity(row));
   }
 }
 
@@ -94,20 +94,20 @@ async function runExample() {
   try {
     // Create PostgreSQL configuration
     const config = new PostgresConfigBuilder()
-      .setHost('localhost')
-      .setPort(5432)
-      .setDatabase('example_db')
-      .setUser('postgres')
-      .setPassword('postgres')
-      .setMaxConnections(10)
-      .setSsl(false)
+      .withHost('localhost')
+      .withPort(5432)
+      .withDatabase('postgres')
+      .withUser('postgres')
+      .withPassword('postgres')
+      .withPool(1, 10)
+      .withSSL('disable')
       .build();
 
     // Create connection manager
     const connectionManager = new PostgresConnectionManager();
     
     // Add and connect to database
-    await connectionManager.addConnection('default', config);
+    await connectionManager.createConnection(config, 'default');
     const connection = await connectionManager.getConnection('default');
     
     console.log('Connected to PostgreSQL');
@@ -149,9 +149,10 @@ async function runExample() {
     }
 
     // Insert a new user
+    const timestamp = new Date().getTime();
     const newUser: User = {
-      username: 'johndoe',
-      email: 'john.doe@example.com'
+      username: `johndoe_${timestamp}`,
+      email: `john.doe.${timestamp}@example.com`
     };
 
     console.log('\nCreating new user:', newUser);
@@ -175,7 +176,8 @@ async function runExample() {
     // Update user
     if (createdUser.id) {
       const userUpdate: Partial<User> = {
-        username: 'johndoe_updated'
+        username: 'johndoe_updated',
+        email: createdUser.email
       };
       
       console.log(`\nUpdating user ${createdUser.id}:`, userUpdate);

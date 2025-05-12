@@ -38,11 +38,11 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 ## 🧩 Fase 3: Implementação da Camada de Serviços
 
 ### Core Services
-- [ ] Implementar TableService para operações em tabelas
-- [ ] Criar QueryService para execução de consultas
-- [ ] Desenvolver validação de dados com Joi/Zod
-- [ ] Implementar SchemaService para gerenciamento de schemas
-- [ ] Criar TransactionService para gerenciamento de transações
+- [x] Implementar TableService para operações em tabelas
+- [x] Criar QueryService para execução de consultas
+- [x] Desenvolver validação de dados com Joi/Zod
+- [x] Implementar SchemaService para gerenciamento de schemas
+- [x] Criar TransactionService para gerenciamento de transações
 
 ### Serviços Auxiliares
 - [ ] Implementar controle de acesso e segurança
@@ -60,28 +60,12 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [ ] Adicionar suporte a diferentes modos de transporte (STDIO, HTTP)
 
 ### Handlers MCP
-- [ ] Implementar HandlerBase abstrato
-- [ ] Criar handlers para operações de esquema:
-  - [ ] ListSchemasHandler
-  - [ ] ListTablesHandler
-  - [ ] DescribeTableHandler
-- [ ] Desenvolver handlers para operações CRUD:
-  - [ ] ReadTableHandler
-  - [ ] CreateRecordHandler
-  - [ ] CreateBatchHandler
-  - [ ] UpdateRecordsHandler
-  - [ ] DeleteRecordsHandler
-- [ ] Implementar handlers para consultas e transações:
-  - [ ] ExecuteQueryHandler
-  - [ ] BeginTransactionHandler
-  - [ ] CommitTransactionHandler
-  - [ ] RollbackTransactionHandler
-- [ ] Implementar handlers para operações de cache:
-  - [ ] GetCacheStatsHandler
-  - [ ] ClearCacheHandler
-- [ ] Implementar handlers para operações de métricas:
-  - [ ] GetMetricsHandler
-  - [ ] ResetMetricsHandler
+- [ ] Implementar TableHandler para operações em tabelas
+- [ ] Criar QueryHandler para execução de consultas
+- [ ] Implementar SchemaHandler para gerenciamento de schemas
+- [ ] Desenvolver MetadataHandler para informações de metadados
+- [ ] Criar ConnectionHandler para gerenciamento de conexões
+- [ ] Implementar TransactionHandler para gerenciamento de transações
 
 ## 🔍 Fase 5: Implementação de Funcionalidades Avançadas
 

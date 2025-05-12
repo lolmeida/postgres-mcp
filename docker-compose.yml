@@ -2,9 +2,8 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15
-    container_name: postgres-mcp
-    restart: unless-stopped
+    image: postgres:14-alpine
+    container_name: mcp-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -12,41 +11,36 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+    restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - mcp-network
 
-  postgres-mcp:
+  mcp-server:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: postgres-mcp-app
-    restart: unless-stopped
+    container_name: mcp-server
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_SSL=prefer
+      - MCP_MODE=http
+      - MCP_PORT=8432
+      - MCP_LOG_LEVEL=info
+      - MCP_LOG_SQL=true
     ports:
       - "8432:8432"
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: postgres
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      MCP_MODE: http
-      MCP_PORT: 8432
-      LOG_LEVEL: INFO
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - mcp-network
-
-networks:
-  mcp-network:
-    driver: bridge
+    restart: always
 
 volumes:
-  postgres_data: 
+  pgdata: 

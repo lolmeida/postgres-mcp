@@ -95,40 +95,64 @@ Se ocorrer um erro durante a limpeza do cache, a resposta terá um dos seguintes
 - Para tabelas que são frequentemente atualizadas, pode ser útil limpar o cache delas periodicamente
 - A limpeza de todo o cache deve ser utilizada apenas em situações específicas, como durante o diagnóstico de problemas ou antes de operações de manutenção
 
-## Exemplo de Uso em Python
+## Exemplo de Uso em JavaScript
 
-```python
-import requests
+```javascript
+const axios = require('axios');
 
-def clear_cache(scope="all", table=None, schema=None, base_url="http://localhost:8000"):
-    parameters = {"scope": scope}
+async function clearCache({ 
+  scope = 'all', 
+  table = null, 
+  schema = null, 
+  baseUrl = 'http://localhost:8000' 
+} = {}) {
+  
+  const parameters = { scope };
+  
+  if (scope === 'table') {
+    if (!table) {
+      throw new Error("Parâmetro 'table' obrigatório quando scope='table'");
+    }
+    parameters.table = table;
+    parameters.schema = schema || 'public';
+  } 
+  else if (scope === 'schema') {
+    if (!schema) {
+      throw new Error("Parâmetro 'schema' obrigatório quando scope='schema'");
+    }
+    parameters.schema = schema;
+  }
+  
+  try {
+    const response = await axios.post(
+      baseUrl,
+      {
+        tool: 'clear_cache',
+        parameters
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao limpar cache:', error);
+    throw error;
+  }
+}
+
+// Exemplos de uso
+async function exemplosDeLimpezaDeCache() {
+  try {
+    // Limpar todo o cache
+    await clearCache();
     
-    if scope == "table":
-        if not table:
-            raise ValueError("Parâmetro 'table' obrigatório quando scope='table'")
-        parameters["table"] = table
-        parameters["schema"] = schema or "public"
-        
-    elif scope == "schema":
-        if not schema:
-            raise ValueError("Parâmetro 'schema' obrigatório quando scope='schema'")
-        parameters["schema"] = schema
+    // Limpar cache para uma tabela específica
+    await clearCache({ scope: 'table', table: 'users', schema: 'public' });
     
-    response = requests.post(
-        base_url,
-        json={
-            "tool": "clear_cache",
-            "parameters": parameters
-        }
-    )
-    return response.json()
+    // Limpar cache para um schema inteiro
+    await clearCache({ scope: 'schema', schema: 'public' });
+  } catch (error) {
+    console.error('Erro:', error.message);
+  }
+}
 
-# Limpar todo o cache
-clear_cache()
-
-# Limpar cache para uma tabela específica
-clear_cache(scope="table", table="users", schema="public")
-
-# Limpar cache para um schema inteiro
-clear_cache(scope="schema", schema="public")
+exemplosDeLimpezaDeCache();
 ``` 

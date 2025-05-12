@@ -7,7 +7,7 @@
  */
 
 import { createComponentLogger } from '../utils/logger';
-import { DatabaseException, QueryException } from '../utils/exceptions';
+import { QueryException } from '../utils/exceptions';
 
 /**
  * Join type for SQL joins

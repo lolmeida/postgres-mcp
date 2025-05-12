@@ -7,7 +7,6 @@
 
 import { MCPRequest, MCPResponse } from './types';
 import { HandlerBase } from '../handlers/HandlerBase';
-import { InternalException } from '../utils/exceptions';
 import { createComponentLogger } from '../utils/logger';
 import { MCPConfig } from './MCPConfig';
 
@@ -30,7 +29,7 @@ export class MCPRouter {
    * 
    * @param config MCP configuration
    */
-  constructor(private config: MCPConfig) {
+  constructor(config: MCPConfig) {
     this.logger = createComponentLogger('MCPRouter', config);
   }
 
