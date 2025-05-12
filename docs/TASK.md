@@ -33,6 +33,7 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 - [x] Implementar funcionalidades para operações em schemas
 - [x] Desenvolver QueryBuilder para construção dinâmica de consultas SQL
 - [x] Adicionar suporte a transações
+- [x] Refatorar PostgresSchemaManager para extrair consultas SQL para arquivo separado
 
 ## 🧩 Fase 3: Implementação da Camada de Serviços
 
