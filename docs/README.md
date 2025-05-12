@@ -106,15 +106,34 @@ Este projeto é licenciado sob os termos da licença MIT.
 
 ## Status do Projeto
 
-Status atual: **Versão 0.1.0** (Em desenvolvimento inicial)
+Status atual: **Versão 0.1.0** (Em desenvolvimento)
 
-O PostgreSQL MCP para JavaScript está em fase inicial de desenvolvimento. O projeto visa implementar as seguintes funcionalidades:
+O PostgreSQL MCP para JavaScript está em fase de desenvolvimento ativo. A implementação atual inclui:
 
-- Operações CRUD completas (criar, ler, atualizar, excluir)
+### ✅ Funcionalidades Implementadas
+
+- **Interface MCP Completa**: Implementação do Model Context Protocol para PostgreSQL
+- **Handlers MCP**:
+  - `TableHandler`: Operações CRUD em tabelas
+  - `QueryHandler`: Execução de consultas SQL
+  - `SchemaHandler`: Gerenciamento de schemas e estrutura de banco de dados
+  - `MetadataHandler`: Informações sobre metadados do PostgreSQL
+  - `ConnectionHandler`: Gerenciamento de conexões
+  - `TransactionHandler`: Gerenciamento de transações
+- **Camada de Serviços**:
+  - TableService para operações em tabelas
+  - QueryService para execução de consultas
+  - SchemaService para gerenciamento de schemas
+  - TransactionService para gerenciamento de transações
+- **Camadas de Transporte**:
+  - STDIO para comunicação via linha de comando
+  - HTTP para comunicação via rede (parcial)
+- **Sistema de Logging e Configuração**
+
+### 🔍 Funcionalidades Planejadas
+
 - Sistema de filtros avançado
-- Gerenciamento de transações
 - Compatibilidade com múltiplos schemas
-- Modos de transporte STDIO e HTTP
 - Sistema de cache para otimização de consultas
 - Sistema de métricas para monitoramento de desempenho
 - Suporte a tipos de dados PostgreSQL específicos:

@@ -43,6 +43,288 @@ Em caso de erro:
 
 ## Ferramentas Disponíveis
 
+### Ferramentas MCP
+
+O PostgreSQL MCP implementa as seguintes ferramentas compatíveis com o Model Context Protocol (MCP):
+
+#### `mcp_postgres_table`
+
+Gerencia operações em tabelas do PostgreSQL.
+
+**Operações:**
+
+| Operação | Descrição |
+|----------|-----------|
+| `listTables` | Lista tabelas em um schema |
+| `getTableDetails` | Obtém detalhes de uma tabela específica |
+| `createTable` | Cria uma nova tabela |
+| `dropTable` | Remove uma tabela existente |
+| `truncateTable` | Esvazia uma tabela |
+| `listTableRecords` | Lista registros de uma tabela |
+| `insertRecord` | Insere um registro em uma tabela |
+| `updateRecord` | Atualiza registros em uma tabela |
+| `deleteRecord` | Remove registros de uma tabela |
+
+**Exemplo:**
+
+```json
+{
+  "tool": "mcp_postgres_table",
+  "parameters": {
+    "operation": "listTables",
+    "schemaName": "public",
+    "includeSystem": false
+  },
+  "requestId": "req_12345"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tables": [
+      { "name": "users", "schema": "public", "type": "table", "owner": "postgres" },
+      { "name": "products", "schema": "public", "type": "table", "owner": "postgres" }
+    ]
+  },
+  "message": "Encontrada(s) 2 tabela(s) no schema 'public'",
+  "requestId": "req_12345"
+}
+```
+
+#### `mcp_postgres_query`
+
+Executa consultas SQL no banco de dados PostgreSQL.
+
+**Operações:**
+
+| Operação | Descrição |
+|----------|-----------|
+| `executeQuery` | Executa uma consulta SQL |
+| `prepareStatement` | Prepara uma declaração SQL para execução posterior |
+| `executePrepared` | Executa uma declaração SQL preparada |
+
+**Exemplo:**
+
+```json
+{
+  "tool": "mcp_postgres_query",
+  "parameters": {
+    "operation": "executeQuery",
+    "sql": "SELECT * FROM users WHERE status = $1",
+    "parameters": ["active"],
+    "maxRows": 100
+  },
+  "requestId": "req_12346"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "records": [
+      { "id": 1, "name": "John Doe", "email": "john@example.com", "status": "active" },
+      { "id": 2, "name": "Jane Smith", "email": "jane@example.com", "status": "active" }
+    ],
+    "fields": [
+      { "name": "id", "type": "integer" },
+      { "name": "name", "type": "varchar" },
+      { "name": "email", "type": "varchar" },
+      { "name": "status", "type": "varchar" }
+    ],
+    "rowCount": 2,
+    "executionTime": 5,
+    "command": "SELECT"
+  },
+  "message": "Consulta executada com sucesso. 2 registro(s) retornado(s).",
+  "requestId": "req_12346"
+}
+```
+
+#### `mcp_postgres_schema`
+
+Gerencia schemas e estruturas do banco de dados PostgreSQL.
+
+**Operações:**
+
+| Operação | Descrição |
+|----------|-----------|
+| `listSchemas` | Lista todos os schemas disponíveis |
+| `createSchema` | Cria um novo schema |
+| `dropSchema` | Remove um schema existente |
+| `getSchemaDetails` | Obtém detalhes de um schema específico |
+| `createIndex` | Cria um índice em uma tabela |
+| `dropIndex` | Remove um índice existente |
+| `listIndices` | Lista índices de uma tabela |
+
+**Exemplo:**
+
+```json
+{
+  "tool": "mcp_postgres_schema",
+  "parameters": {
+    "operation": "listSchemas",
+    "includeSystem": false
+  },
+  "requestId": "req_12347"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "schemas": [
+      { "name": "public", "owner": "postgres" },
+      { "name": "custom", "owner": "postgres" }
+    ]
+  },
+  "message": "Operação listSchemas executada com sucesso",
+  "requestId": "req_12347"
+}
+```
+
+#### `mcp_postgres_metadata`
+
+Fornece informações sobre metadados do banco de dados PostgreSQL.
+
+**Operações:**
+
+| Operação | Descrição |
+|----------|-----------|
+| `getPostgresVersion` | Obtém a versão do PostgreSQL |
+| `getDatabaseSize` | Obtém o tamanho do banco de dados |
+| `getTableSize` | Obtém o tamanho de uma tabela específica |
+| `listExtensions` | Lista extensões instaladas |
+| `getTableStats` | Obtém estatísticas de uma tabela |
+
+**Exemplo:**
+
+```json
+{
+  "tool": "mcp_postgres_metadata",
+  "parameters": {
+    "operation": "getPostgresVersion"
+  },
+  "requestId": "req_12348"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "version": {
+      "full_version": "PostgreSQL 14.5 on x86_64-pc-linux-gnu",
+      "server_version": "14.5",
+      "server_version_num": "140005"
+    }
+  },
+  "message": "Operação getPostgresVersion executada com sucesso",
+  "requestId": "req_12348"
+}
+```
+
+#### `mcp_postgres_connection`
+
+Gerencia conexões com o banco de dados PostgreSQL.
+
+**Operações:**
+
+| Operação | Descrição |
+|----------|-----------|
+| `getConnectionStatus` | Obtém o status da conexão atual |
+| `testConnection` | Testa a conexão com o banco de dados |
+| `reconnect` | Reconecta ao banco de dados |
+| `getConnectionInfo` | Obtém informações detalhadas da conexão |
+
+**Exemplo:**
+
+```json
+{
+  "tool": "mcp_postgres_connection",
+  "parameters": {
+    "operation": "getConnectionStatus"
+  },
+  "requestId": "req_12349"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "status": {
+      "connected": true,
+      "latencyMs": 5,
+      "serverVersion": "PostgreSQL 14.5",
+      "connectionUptime": 3600,
+      "poolSize": 5,
+      "timestamp": "2024-05-12T21:48:31.031Z"
+    }
+  },
+  "message": "Operação getConnectionStatus executada com sucesso",
+  "requestId": "req_12349"
+}
+```
+
+#### `mcp_postgres_transaction`
+
+Gerencia transações no banco de dados PostgreSQL.
+
+**Operações:**
+
+| Operação | Descrição |
+|----------|-----------|
+| `begin` | Inicia uma nova transação |
+| `commit` | Confirma uma transação ativa |
+| `rollback` | Reverte uma transação ativa |
+| `getTransactionStatus` | Obtém o status da transação atual |
+| `savepoint` | Cria um ponto de salvamento na transação atual |
+| `rollbackToSavepoint` | Reverte para um ponto de salvamento específico |
+
+**Exemplo:**
+
+```json
+{
+  "tool": "mcp_postgres_transaction",
+  "parameters": {
+    "operation": "begin",
+    "isolationLevel": "read committed",
+    "readOnly": false
+  },
+  "requestId": "req_12350"
+}
+```
+
+**Resposta:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "transactionId": "tx_123456",
+    "isolationLevel": "read committed",
+    "readOnly": false,
+    "deferrable": false
+  },
+  "message": "Transação iniciada com sucesso",
+  "requestId": "req_12350"
+}
+```
+
 ### 1. `list_schemas`
 
 Lista todos os schemas disponíveis no banco de dados.
