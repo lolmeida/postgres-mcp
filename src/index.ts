@@ -33,6 +33,10 @@ export * from './services/QueryService';
 export * from './services/ValidationService';
 export * from './services/SchemaService';
 export * from './services/TransactionService';
+export * from './services/LoggingService';
+export * from './services/CacheService';
+export * from './services/MetricsService';
+export * from './services/SecurityService';
 
 // Utils
 export * from './utils/exceptions';

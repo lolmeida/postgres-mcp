@@ -48,7 +48,9 @@
     "pg-cursor": "^2.15.0",
     "pg-format": "^1.0.4",
     "pg-pool": "^3.10.0",
-    "winston": "^3.17.0"
+    "uuid": "^9.0.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.3",
@@ -57,6 +59,7 @@
     "@types/joi": "^17.2.2",
     "@types/node": "^22.15.17",
     "@types/pg": "^8.15.1",
+    "@types/uuid": "^9.0.8",
     "eslint": "^9.26.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.0",
