@@ -5,9 +5,8 @@
  * column details, and other database metadata.
  */
 
-import { PoolClient } from 'pg';
 import { createComponentLogger } from '../utils/logger';
-import { DatabaseException, QueryException, transformDbError } from '../utils/exceptions';
+import { QueryException, transformDbError } from '../utils/exceptions';
 import { PostgresConnection } from './PostgresConnection';
 import { schemaQueries } from './PostgresSchemaQueries';
 

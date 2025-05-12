@@ -98,7 +98,7 @@ export class PostgresMCPServer {
         ssl: this.config.dbSsl === 'disable' ? false : {
           rejectUnauthorized: this.config.dbSsl === 'verify-ca' || this.config.dbSsl === 'verify-full'
         },
-        connectionTimeoutMillis: this.config.commandTimeout * 1000,
+        connectionTimeoutMillis: (this.config.commandTimeout || 30) * 1000,
         idleTimeoutMillis: 30000
       } as any); // Usando "as any" temporariamente até resolver os tipos corretos
 

@@ -58,19 +58,29 @@ Se ocorrer um erro ao obter as estatísticas do cache, a resposta terá o seguin
 - A taxa de acerto (hit_ratio) é um indicador importante da eficácia do cache - valores acima de 80% geralmente indicam um bom desempenho
 - O número de invalidações pode ajudar a entender se o cache está sendo limpo com muita frequência
 
-## Exemplo de Uso em Python
+## Exemplo de Uso em JavaScript
 
-```python
-import requests
+```javascript
+const axios = require('axios');
 
-def get_cache_stats(base_url="http://localhost:8000"):
-    response = requests.post(
-        base_url,
-        json={"tool": "get_cache_stats"}
-    )
-    return response.json()
+async function getCacheStats(baseUrl = 'http://localhost:8000') {
+  try {
+    const response = await axios.post(
+      baseUrl,
+      { tool: "get_cache_stats" }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao obter estatísticas do cache:', error);
+    throw error;
+  }
+}
 
-stats = get_cache_stats()
-print(f"Taxa de acertos do cache: {stats['data']['hit_ratio']}")
-print(f"Tamanho atual do cache de tabelas: {stats['data']['table_cache_size']}")
+// Uso
+getCacheStats()
+  .then(stats => {
+    console.log(`Taxa de acertos do cache: ${stats.data.hit_ratio}`);
+    console.log(`Tamanho atual do cache de tabelas: ${stats.data.table_cache_size}`);
+  })
+  .catch(err => console.error(err));
 ``` 

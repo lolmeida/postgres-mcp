@@ -1,0 +1,77 @@
+{
+  "name": "mcp-postgres-js",
+  "version": "0.1.0",
+  "description": "PostgreSQL Model Context Protocol (MCP) para integração com LLMs utilizando JavaScript/Node.js",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "rollup -c",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lolmeida/postgres-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "postgresql",
+    "database",
+    "llm",
+    "ai",
+    "model-context-protocol"
+  ],
+  "author": "Lourenço Almeida",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lolmeida/postgres-mcp/issues"
+  },
+  "homepage": "https://github.com/lolmeida/postgres-mcp#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "joi": "^17.13.3",
+    "node-cache": "^5.1.2",
+    "pg": "^8.16.0",
+    "pg-cursor": "^2.15.0",
+    "pg-format": "^1.0.4",
+    "pg-pool": "^3.10.0",
+    "uuid": "^9.0.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@types/jest": "^29.5.14",
+    "@types/joi": "^17.2.2",
+    "@types/node": "^22.15.17",
+    "@types/pg": "^8.15.1",
+    "@types/uuid": "^9.0.8",
+    "eslint": "^9.26.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.0",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.5.3",
+    "rollup": "^2.79.2",
+    "rollup-plugin-terser": "^7.0.2",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "ts-jest": "^29.3.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
