@@ -1,6 +1,6 @@
-# PostgreSQL MCP - Documentação
+# PostgreSQL MCP (JavaScript) - Documentação
 
-Bem-vindo à documentação oficial do PostgreSQL MCP, uma implementação do Model Context Protocol para PostgreSQL que permite a Modelos de Linguagem Grandes (LLMs) interagir diretamente com bancos de dados PostgreSQL.
+Bem-vindo à documentação oficial do PostgreSQL MCP para JavaScript, uma implementação do Model Context Protocol para PostgreSQL que permite a Modelos de Linguagem Grandes (LLMs) interagir diretamente com bancos de dados PostgreSQL.
 
 ## Visão Geral
 
@@ -8,112 +8,70 @@ O PostgreSQL MCP funciona como uma ponte entre LLMs e bancos de dados PostgreSQL
 
 ## Status do Projeto
 
-**Versão atual: 0.1.0 (99% completo)**
+**Versão atual: 0.1.0 (Em desenvolvimento inicial)**
 
-Todas as funcionalidades principais foram implementadas e testadas, incluindo:
-- CRUD completo
-- Sistema de filtros avançado 
-- Gerenciamento de transações
-- Suporte a múltiplos schemas
-- Operações para views e funções armazenadas
-- Suporte a tipos de dados avançados
+Este projeto está em fase inicial de desenvolvimento. A estrutura base do projeto foi estabelecida, incluindo a configuração do ambiente e organização modular. A Fase 1 (Preparação e Estrutura Inicial) foi concluída e estamos iniciando a Fase 2 (Implementação da Camada de Conexão PostgreSQL).
 
-## Documentação Disponível
+### O que está implementado
 
-### Guias de Uso
-- [Guia de Início Rápido](guides/quickstart.md)
-- [Configuração e Conexão](guides/configuration.md)
-- [Operações CRUD](guides/crud.md)
-- [Filtros e Consultas](guides/filters.md)
-- [Transações](guides/transactions.md)
-- [Views e Funções](guides/views_functions.md)
+- ✅ Configuração do ambiente de desenvolvimento (TypeScript, ESLint, Prettier, Jest)
+- ✅ Sistema de build com Rollup
+- ✅ Estrutura modular seguindo princípios SOLID
+- ✅ Sistema de logging com Winston
+- ✅ Configuração flexível via variáveis de ambiente ou parâmetros
+- ✅ Implementação da estrutura de pastas em camadas (Handlers, Services, Repositories)
+- ✅ Interfaces base para todas as camadas da aplicação
+- ✅ Validação de dados usando Joi
+- ✅ Sistema completo de tratamento de exceções
+- ✅ Classe principal PostgresMCPServer com inicialização
+- ✅ Sistema de roteamento de requisições MCP
+- ✅ Ambiente Docker para desenvolvimento e testes
 
-### Referência de API
-- [API Completa](API_REFERENCE.md)
-- [Objetos e Tipos](api/types.md)
-- [Parâmetros de Requisição](api/request_parameters.md)
-- [Respostas e Códigos de Erro](api/responses.md)
+### Próximos passos
 
-### Desenvolvimento e Contribuição
-- [Arquitetura](ARCHITECTURE.md)
-- [Guia de Contribuição](../CONTRIBUTING.md)
-- [Exemplos de Código](CODE_EXAMPLES.md)
+- Implementação da camada de conexão com PostgreSQL
+- Implementação do gerenciamento de pool e transações
+- Desenvolvimento de handlers para operações MCP específicas
+- Implementação de sistema de filtros e consultas avançadas
+- Testes unitários e de integração
+- Documentação completa da API
 
-## Funcionalidades Principais
+## Funcionalidades Planejadas
 
-### Core
-- **Conexão PostgreSQL**: Conexão robusta com pool gerenciado
-- **Operações CRUD**: Suporte completo para criar, ler, atualizar e excluir dados
-- **Consultas Flexíveis**: Sistema avançado de filtragem, ordenação e projeção
-- **Transações**: Suporte a transações ACID completas
-- **Segurança**: Proteção contra injeção SQL e validação de entrada
+O PostgreSQL MCP para JavaScript pretende implementar as seguintes funcionalidades:
 
-### PostgreSQL Avançado
-- **Tipos de Dados**: Suporte a tipos avançados como arrays, JSON/JSONB e geométricos
-- **Views**: Gerenciamento completo de views (normais e materializadas)
-- **Funções e Procedimentos**: Suporte completo a funções e procedimentos armazenados
-- **Múltiplos Schemas**: Trabalho com múltiplos schemas em um único banco de dados
+- **Exploração de Esquema**: Listar schemas, tabelas, colunas e relacionamentos
+- **Operações CRUD**: Ler, criar, atualizar e excluir registros com facilidade
+- **Filtragem Avançada**: Filtros complexos com sintaxe simples em JSON
+- **Suporte a Transações**: Gerenciamento de transações para operações atômicas
+- **Consultas Personalizadas**: Execução de consultas SQL personalizadas com validação
+- **Cache Inteligente**: Armazenamento em cache de resultados frequentes
+- **Métricas e Monitoramento**: Acompanhamento de desempenho e uso
 
-### Performance e Monitoramento
-- **Cache**: Sistema de cache para otimização de consultas frequentes
-- **Métricas**: Monitoramento detalhado de desempenho e uso
-- **Pool de Conexões**: Gerenciamento eficiente de conexões
+## Como Contribuir
 
-## Testes e Qualidade
+Contribuições são bem-vindas! Este projeto está em desenvolvimento ativo e há muitas maneiras de ajudar:
 
-O projeto inclui uma suíte abrangente de testes:
+1. Implementar novas funcionalidades
+2. Melhorar a documentação
+3. Reportar bugs
+4. Sugerir melhorias ou novas funcionalidades
+5. Escrever testes
 
-- **Testes Unitários**: Cobertura completa para serviços e handlers
-- **Testes de Filtros**: Validação de todos os modelos de filtro e conversão para SQL
-- **Testes do QueryBuilder**: Verificação da geração correta de consultas SQL com filtros complexos
-- **Testes de Serialização/Deserialização**: Validação da comunicação via MCP
-- **Testes de Integração**: Testes com banco de dados PostgreSQL real usando Docker
+Veja o arquivo [CONTRIBUTING.md](https://github.com/lolmeida/mcp-postgres-js/blob/main/CONTRIBUTING.md) para mais detalhes sobre como contribuir.
 
-### Testes de Integração
+## Estrutura da Documentação
 
-Os testes de integração estão implementados e utilizam contêineres Docker para executar instâncias isoladas do PostgreSQL. Eles abrangem:
-- Operações CRUD completas
-- Transações (commit, rollback, isolamento)
-- Sistema de filtros com dados reais
-- Recursos específicos do PostgreSQL (views, funções, CTEs)
-
-No entanto, os testes de integração atualmente enfrentam alguns desafios técnicos, incluindo:
-- Incompatibilidades de interface com a implementação atual do PostgresMCP
-- Problemas na inicialização de serviços em ambiente de teste
-
-Estamos trabalhando para resolver essas limitações. Para mais detalhes, consulte o arquivo [INTEGRATION_TESTS_PLAN.md](../INTEGRATION_TESTS_PLAN.md).
-
-Além disso, o projeto segue boas práticas de desenvolvimento:
-- Docstrings completas em todas as funções e classes
-- Tipagem estática com mypy
-- Validação de dados com Pydantic
-
-## Começando
-
-Para começar a usar o PostgreSQL MCP, consulte o [Guia de Início Rápido](guides/quickstart.md) ou siga estes passos básicos:
-
-```python
-from postgres_mcp import run_postgres_mcp
-import asyncio
-
-async def main():
-    await run_postgres_mcp(
-        connection_string="postgresql://user:password@localhost:5432/database",
-        mode="http",
-        port=8000
-    )
-
-asyncio.run(main())
-```
-
-## Requisitos
-
-- Python 3.8+
-- PostgreSQL 12+
-- asyncpg
-- pydantic
-- fastmcp
+- [Início Rápido](./guides/getting-started.md): Como começar com o PostgreSQL MCP
+- [Referência da API](./API_REFERENCE.md): Documentação detalhada de todas as APIs
+- [Guias](./guides/): Guias específicos para funcionalidades
+- [Exemplos de Código](./CODE_EXAMPLES.md): Exemplos práticos de uso
+- [Arquitetura](./ARCHITECTURE.md): Visão geral da arquitetura do projeto
 
 ## Licença
 
-Este projeto é licenciado sob a [Licença MIT](../LICENSE).
+Este projeto é licenciado sob a licença MIT. Veja o arquivo [LICENSE](https://github.com/lolmeida/mcp-postgres-js/blob/main/LICENSE) para mais detalhes.
+
+## Contato
+
+Para dúvidas, sugestões ou problemas, por favor abra uma [issue](https://github.com/lolmeida/mcp-postgres-js/issues) no GitHub.
