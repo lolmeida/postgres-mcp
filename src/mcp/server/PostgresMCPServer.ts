@@ -23,6 +23,8 @@ import { SecurityService } from '../../services/SecurityService';
 import { LoggingService } from '../../services/LoggingService';
 import { CacheService } from '../../services/CacheService';
 import { MetricsService } from '../../services/MetricsService';
+import { ViewService } from '../../services/ViewService';
+import { FunctionService } from '../../services/FunctionService';
 
 // Importação de handlers
 import {
@@ -31,7 +33,9 @@ import {
   SchemaHandler,
   MetadataHandler,
   ConnectionHandler,
-  TransactionHandler
+  TransactionHandler,
+  ViewHandler,
+  FunctionHandler
 } from '../handlers';
 
 /**
@@ -225,6 +229,8 @@ export class PostgresMCPServer {
     logging: LoggingService;
     cache: CacheService;
     metrics: MetricsService;
+    view: ViewService;
+    function: FunctionService;
   };
   
   private config: PostgresMCPServerOptions;
@@ -388,6 +394,12 @@ export class PostgresMCPServer {
       cacheService
     });
     
+    // Serviço de view
+    const viewService = new ViewService(this.connection);
+    
+    // Serviço de function
+    const functionService = new FunctionService(this.connection);
+    
     return {
       table: tableService,
       query: queryService,
@@ -397,7 +409,9 @@ export class PostgresMCPServer {
       security: securityService,
       logging: loggingService,
       cache: cacheService,
-      metrics: metricsService
+      metrics: metricsService,
+      view: viewService,
+      function: functionService
     };
   }
   
@@ -427,9 +441,6 @@ export class PostgresMCPServer {
   
   /**
    * Registra os handlers para as ferramentas MCP
-   * 
-   * Este método deve ser implementado para registrar os handlers
-   * específicos para cada ferramenta suportada pelo PostgreSQL MCP.
    */
   private registerHandlers(): void {
     // Cria e registra os handlers
@@ -456,6 +467,14 @@ export class PostgresMCPServer {
     const transactionHandler = new TransactionHandler(this.services.transaction);
     this.server.registerHandler(transactionHandler);
     this.handlers.push(transactionHandler);
+    
+    const viewHandler = new ViewHandler(this.services.view);
+    this.server.registerHandler(viewHandler);
+    this.handlers.push(viewHandler);
+
+    const functionHandler = new FunctionHandler(this.services.function);
+    this.server.registerHandler(functionHandler);
+    this.handlers.push(functionHandler);
 
     this.logger.info('Registered all standard MCP handlers', {
       handlerCount: this.handlers.length,

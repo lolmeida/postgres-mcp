@@ -267,5 +267,137 @@ export const schemaQueries = {
     JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = $2 AND c.relname = $3
     LIMIT 1;
+  `,
+
+  /**
+   * Query to list views in a schema
+   */
+  listViews: `
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS view_name,
+      CASE
+        WHEN c.relkind = 'v' THEN 'VIEW'
+        WHEN c.relkind = 'm' THEN 'MATERIALIZED_VIEW'
+        ELSE 'UNKNOWN'
+      END AS view_type,
+      pg_catalog.pg_get_userbyid(c.relowner) AS owner,
+      COALESCE(pg_catalog.obj_description(c.oid, 'pg_class'), '') AS description,
+      c.reltuples::bigint AS estimated_row_count,
+      CASE 
+        WHEN c.relkind = 'm' THEN EXISTS (
+          SELECT 1 FROM pg_catalog.pg_index i 
+          WHERE i.indrelid = c.oid AND i.indisunique
+        )
+        ELSE false
+      END AS has_index_for_refresh,
+      CASE 
+        WHEN c.relkind = 'm' THEN pg_catalog.pg_stat_get_last_analyze_time(c.oid)
+        ELSE NULL
+      END AS last_refreshed
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = $1
+      AND c.relkind IN (\${viewTypeFilter})
+    ORDER BY c.relname;
+  `,
+
+  /**
+   * Query to get detailed information about a view
+   */
+  getViewInfo: `
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS view_name,
+      CASE
+        WHEN c.relkind = 'v' THEN 'VIEW'
+        WHEN c.relkind = 'm' THEN 'MATERIALIZED_VIEW'
+        ELSE 'UNKNOWN'
+      END AS view_type,
+      pg_catalog.pg_get_userbyid(c.relowner) AS owner,
+      COALESCE(pg_catalog.obj_description(c.oid, 'pg_class'), '') AS description,
+      c.reltuples::bigint AS estimated_row_count,
+      CASE 
+        WHEN c.relkind = 'm' THEN EXISTS (
+          SELECT 1 FROM pg_catalog.pg_index i 
+          WHERE i.indrelid = c.oid AND i.indisunique
+        )
+        ELSE false
+      END AS has_index_for_refresh,
+      CASE 
+        WHEN c.relkind = 'm' THEN pg_catalog.pg_stat_get_last_analyze_time(c.oid)
+        ELSE NULL
+      END AS last_refreshed
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = $1
+      AND c.relname = $2
+      AND c.relkind IN ('v', 'm')
+    LIMIT 1;
+  `,
+
+  /**
+   * Query to get view definition
+   */
+  getViewDefinition: `
+    SELECT 
+      CASE 
+        WHEN c.relkind = 'v' THEN pg_catalog.pg_get_viewdef(c.oid, true)
+        WHEN c.relkind = 'm' THEN pg_get_viewdef(c.oid, true)
+        ELSE NULL
+      END AS view_definition
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = $1
+      AND c.relname = $2
+      AND c.relkind IN ('v', 'm')
+    LIMIT 1;
+  `,
+
+  /**
+   * Query to get function definition
+   */
+  getFunctionDefinition: `
+    SELECT 
+      pg_catalog.pg_get_functiondef(p.oid) AS function_definition,
+      p.prosrc AS function_source
+    FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = $1
+      AND p.proname = $2
+      AND p.prokind IN ('f', 'p')
+    LIMIT 1;
+  `,
+
+  /**
+   * Query to get a single function's details
+   */
+  getFunctionInfo: `
+    SELECT
+      n.nspname AS schema_name,
+      p.proname AS function_name,
+      pg_catalog.pg_get_function_result(p.oid) AS return_type,
+      pg_catalog.pg_get_function_arguments(p.oid) AS argument_string,
+      CASE 
+        WHEN p.prokind = 'f' THEN 'FUNCTION'
+        WHEN p.prokind = 'p' THEN 'PROCEDURE'
+        ELSE p.prokind::text
+      END AS function_type,
+      l.lanname AS language,
+      CASE
+        WHEN p.provolatile = 'i' THEN 'IMMUTABLE'
+        WHEN p.provolatile = 's' THEN 'STABLE'
+        WHEN p.provolatile = 'v' THEN 'VOLATILE'
+        ELSE NULL
+      END AS volatility,
+      pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+      COALESCE(pg_catalog.obj_description(p.oid, 'pg_proc'), '') AS description
+    FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    JOIN pg_catalog.pg_language l ON l.oid = p.prolang
+    WHERE n.nspname = $1
+      AND p.proname = $2
+      AND p.prokind IN ('f', 'p')
+    LIMIT 1;
   `
 }; 

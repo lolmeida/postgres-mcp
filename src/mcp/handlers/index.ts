@@ -9,4 +9,6 @@ export * from './QueryHandler';
 export * from './SchemaHandler';
 export * from './MetadataHandler';
 export * from './ConnectionHandler';
-export * from './TransactionHandler'; 
+export * from './TransactionHandler';
+export * from '../../handlers/ViewHandler';
+export * from '../../handlers/FunctionHandler'; 

@@ -95,7 +95,29 @@ export interface FunctionInfo {
   language: string;
   functionType: 'FUNCTION' | 'PROCEDURE';
   volatility: 'IMMUTABLE' | 'STABLE' | 'VOLATILE';
+  owner: string;
   description?: string;
+}
+
+/**
+ * View information
+ */
+export interface ViewRow {
+  schema_name: string;
+  view_name: string;
+  view_type: string;
+  owner: string;
+  description: string;
+  estimated_row_count: number;
+  has_index_for_refresh: boolean;
+  last_refreshed: Date | null;
+}
+
+/**
+ * View definition
+ */
+export interface ViewDefinitionRow {
+  view_definition: string;
 }
 
 /**
@@ -165,6 +187,7 @@ interface FunctionRow {
   function_type: string;
   language: string;
   volatility: string | null;
+  owner: string;
   description: string;
 }
 
@@ -415,6 +438,7 @@ export class PostgresSchemaManager {
           language: row.language,
           functionType: row.function_type as FunctionInfo['functionType'],
           volatility: row.volatility as FunctionInfo['volatility'],
+          owner: row.owner,
           description: row.description || undefined
         };
       }));
@@ -558,6 +582,239 @@ export class PostgresSchemaManager {
       };
     } catch (error: any) {
       this.logger.error(`Failed to get table size: ${schemaName}.${tableName}`, error);
+      throw transformDbError(error);
+    }
+  }
+
+  /**
+   * Lists all views in a schema
+   * 
+   * @param schemaName Schema name (default: 'public')
+   * @param includeRegularViews Whether to include regular views
+   * @param includeMaterializedViews Whether to include materialized views
+   * @returns List of views
+   */
+  async listViews(schemaName: string = 'public', 
+                  includeRegularViews: boolean = true,
+                  includeMaterializedViews: boolean = true): Promise<ViewRow[]> {
+    try {
+      let viewTypeFilter = "";
+      
+      if (includeRegularViews && includeMaterializedViews) {
+        viewTypeFilter = "'v', 'm'";
+      } else if (includeRegularViews) {
+        viewTypeFilter = "'v'";
+      } else if (includeMaterializedViews) {
+        viewTypeFilter = "'m'";
+      } else {
+        // Se nenhum tipo for incluído, retorna uma lista vazia
+        return [];
+      }
+      
+      const query = schemaQueries.listViews.replace('${viewTypeFilter}', viewTypeFilter);
+
+      const result = await this.connection.query(query, [schemaName]);
+
+      return result.rows;
+    } catch (error: any) {
+      this.logger.error(`Failed to list views in schema: ${schemaName}`, error);
+      throw transformDbError(error);
+    }
+  }
+
+  /**
+   * Gets information about a specific view
+   * 
+   * @param viewName View name
+   * @param schemaName Schema name (default: 'public')
+   * @returns View information
+   */
+  async getViewInfo(viewName: string, schemaName: string = 'public'): Promise<ViewRow> {
+    try {
+      const query = schemaQueries.getViewInfo;
+
+      const result = await this.connection.query(query, [schemaName, viewName]);
+
+      if (result.rows.length === 0) {
+        throw new Error(`View ${schemaName}.${viewName} not found`);
+      }
+
+      return result.rows[0];
+    } catch (error: any) {
+      this.logger.error(`Failed to get view info: ${schemaName}.${viewName}`, error);
+      throw transformDbError(error);
+    }
+  }
+
+  /**
+   * Gets the SQL definition of a view
+   * 
+   * @param viewName View name
+   * @param schemaName Schema name (default: 'public')
+   * @returns SQL definition of the view
+   */
+  async getViewDefinition(viewName: string, schemaName: string = 'public'): Promise<string> {
+    try {
+      const query = schemaQueries.getViewDefinition;
+
+      const result = await this.connection.query(query, [schemaName, viewName]);
+
+      if (result.rows.length === 0) {
+        throw new Error(`View ${schemaName}.${viewName} not found`);
+      }
+
+      return result.rows[0].view_definition;
+    } catch (error: any) {
+      this.logger.error(`Failed to get view definition: ${schemaName}.${viewName}`, error);
+      throw transformDbError(error);
+    }
+  }
+
+  /**
+   * Refreshes a materialized view
+   * 
+   * @param viewName Materialized view name
+   * @param schemaName Schema name (default: 'public')
+   * @param concurrently Whether to refresh concurrently (requires unique index)
+   * @param withData Whether to refresh with data or just the structure
+   * @returns Success flag
+   */
+  async refreshMaterializedView(
+    viewName: string, 
+    schemaName: string = 'public',
+    concurrently: boolean = false,
+    withData: boolean = true
+  ): Promise<boolean> {
+    try {
+      // Verifica se a view existe e é materializada
+      const viewInfo = await this.getViewInfo(viewName, schemaName);
+      
+      if (viewInfo.view_type !== 'MATERIALIZED_VIEW') {
+        throw new Error(`${schemaName}.${viewName} is not a materialized view`);
+      }
+      
+      // Se solicitado concurrently, verifica se há índice
+      if (concurrently && !viewInfo.has_index_for_refresh) {
+        throw new Error(`Cannot refresh concurrently: ${schemaName}.${viewName} has no unique index`);
+      }
+      
+      // Constrói o comando SQL de refresh
+      let refreshSql = 'REFRESH MATERIALIZED VIEW ';
+      
+      if (concurrently) {
+        refreshSql += 'CONCURRENTLY ';
+      }
+      
+      refreshSql += `"${schemaName}"."${viewName}"`;
+      
+      if (!withData) {
+        refreshSql += ' WITH NO DATA';
+      }
+      
+      // Executa o refresh
+      await this.connection.query(refreshSql);
+      return true;
+    } catch (error: any) {
+      this.logger.error(`Failed to refresh materialized view: ${schemaName}.${viewName}`, error);
+      throw transformDbError(error);
+    }
+  }
+
+  /**
+   * Gets full definition of a function
+   * 
+   * @param functionName Function name
+   * @param schemaName Schema name (default: 'public')
+   * @returns Function definition
+   */
+  async getFunctionDefinition(functionName: string, schemaName: string = 'public'): Promise<string> {
+    try {
+      const query = schemaQueries.getFunctionDefinition;
+
+      const result = await this.connection.query(query, [schemaName, functionName]);
+
+      if (result.rows.length === 0) {
+        throw new Error(`Function ${schemaName}.${functionName} not found`);
+      }
+
+      return result.rows[0].function_definition;
+    } catch (error: any) {
+      this.logger.error(`Failed to get function definition: ${schemaName}.${functionName}`, error);
+      throw transformDbError(error);
+    }
+  }
+
+  /**
+   * Gets detailed information about a function
+   * 
+   * @param functionName Function name
+   * @param schemaName Schema name (default: 'public')
+   * @returns Function information
+   */
+  async getFunctionInfo(functionName: string, schemaName: string = 'public'): Promise<FunctionInfo> {
+    try {
+      const query = schemaQueries.getFunctionInfo;
+
+      const result = await this.connection.query(query, [schemaName, functionName]);
+
+      if (result.rows.length === 0) {
+        throw new Error(`Function ${schemaName}.${functionName} not found`);
+      }
+      
+      const row = result.rows[0];
+      const argDetails = await this.parseFunctionArguments(row.argument_string);
+      
+      return {
+        schemaName: row.schema_name,
+        functionName: row.function_name,
+        returnType: row.return_type,
+        argumentTypes: argDetails.types,
+        argumentNames: argDetails.names,
+        argumentDefaults: argDetails.defaults,
+        language: row.language,
+        functionType: row.function_type as FunctionInfo['functionType'],
+        volatility: row.volatility as FunctionInfo['volatility'],
+        owner: row.owner,
+        description: row.description || undefined
+      };
+    } catch (error: any) {
+      this.logger.error(`Failed to get function info: ${schemaName}.${functionName}`, error);
+      throw transformDbError(error);
+    }
+  }
+
+  /**
+   * Execute a function or procedure
+   * 
+   * @param functionName Function name
+   * @param schemaName Schema name (default: 'public')
+   * @param args Function arguments
+   * @returns Execution result
+   */
+  async executeFunction(functionName: string, 
+                       schemaName: string = 'public', 
+                       args: any[] = []): Promise<any> {
+    try {
+      // Get function info to verify if it exists and is a function or procedure
+      const functionInfo = await this.getFunctionInfo(functionName, schemaName);
+      
+      // Create the function call SQL
+      let sql: string;
+      const placeholders = args.map((_, i) => `$${i + 1}`).join(', ');
+      
+      if (functionInfo.functionType === 'FUNCTION') {
+        sql = `SELECT * FROM "${schemaName}"."${functionName}"(${placeholders})`;
+      } else {
+        sql = `CALL "${schemaName}"."${functionName}"(${placeholders})`;
+      }
+      
+      // Execute the function
+      const result = await this.connection.query(sql, args);
+      
+      // Return query results for functions, or success flag for procedures
+      return functionInfo.functionType === 'FUNCTION' ? result.rows : true;
+    } catch (error: any) {
+      this.logger.error(`Failed to execute function: ${schemaName}.${functionName}`, error);
       throw transformDbError(error);
     }
   }

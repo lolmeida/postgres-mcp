@@ -70,37 +70,40 @@ Este documento contém o planejamento detalhado e a lista de tarefas para a impl
 ## 🔍 Fase 5: Implementação de Funcionalidades Avançadas
 
 ### Sistema de Filtros
-- [ ] Implementar parser de filtros JSON para SQL
-- [ ] Adicionar suporte a operadores de comparação
-- [ ] Criar suporte para filtros de texto (like, ilike, regex)
-- [ ] Implementar filtros para listas (in, not in)
-- [ ] Adicionar suporte a operadores para valores nulos
-- [ ] Desenvolver filtros para tipos específicos do PostgreSQL:
-  - [ ] Arrays
-  - [ ] JSON/JSONB
-  - [ ] Tipos geométricos
+- [x] Implementar parser de filtros JSON para SQL
+- [x] Adicionar suporte a operadores de comparação
+- [x] Criar suporte para filtros de texto (like, ilike, regex)
+- [x] Implementar filtros para listas (in, not in)
+- [x] Adicionar suporte a operadores para valores nulos
+- [x] Desenvolver filtros para tipos específicos do PostgreSQL:
+  - [x] Arrays
+  - [x] JSON/JSONB
+  - [x] Tipos geométricos
 
 ### Funcionalidades PostgreSQL Avançadas
 - [ ] Implementar suporte a múltiplos schemas
 - [ ] Adicionar suporte a tipos de dados avançados
-- [ ] Criar funcionalidades para trabalhar com views
-- [ ] Implementar suporte a funções e procedimentos armazenados
+- [x] Criar funcionalidades para trabalhar com views
+- [x] Implementar suporte a funções e procedimentos armazenados
 - [ ] Adicionar suporte a CTEs e Window Functions
-- [ ] Implementar suporte a views
-  - [ ] Criar modelo ViewInfo para representar views
-  - [ ] Implementar métodos no repositório para gerenciar views
-  - [ ] Criar serviço ViewService para operações com views
-  - [ ] Implementar handlers MCP para operações com views
-  - [ ] Adicionar suporte a views materializadas
-  - [ ] Implementar refresh de views materializadas
+- [x] Implementar suporte a views
+  - [x] Criar modelo ViewInfo para representar views
+  - [x] Implementar métodos no repositório para gerenciar views
+  - [x] Criar serviço ViewService para operações com views
+  - [x] Implementar handlers MCP para operações com views
+  - [x] Adicionar suporte a views materializadas
+  - [x] Implementar refresh de views materializadas
+- [x] Implementar suporte a funções e procedimentos armazenados
+  - [x] Criar modelo FunctionInfo para representar funções
+  - [x] Implementar métodos no repositório para gerenciar funções
+  - [x] Criar serviço FunctionService para operações com funções
+  - [x] Implementar handlers MCP para operações com funções
+  - [x] Adicionar suporte a procedimentos armazenados
+  - [x] Implementar execução de funções com parâmetros
 
-- [ ] Implementar suporte a funções e procedimentos armazenados
-  - [ ] Criar modelo FunctionInfo para representar funções
-  - [ ] Implementar métodos no repositório para gerenciar funções
-  - [ ] Criar serviço FunctionService para operações com funções
-  - [ ] Implementar handlers MCP para operações com funções
-  - [ ] Adicionar suporte a procedimentos armazenados
-  - [ ] Implementar execução de funções com parâmetros
+### Testes de Funcionalidades
+- [x] Verificar funcionamento de views e views materializadas no PostgreSQL
+- [x] Verificar funcionamento de funções e procedures no PostgreSQL
 
 ## 🧪 Fase 6: Testes
 

@@ -3,7 +3,7 @@
  * 
  * Este exemplo demonstra como configurar e usar os componentes
  * MCP implementados, incluindo:
- * - Configuração do servidor MCP
+ * - Configuração do servidor PostgreSQL MCP
  * - Implementação de handlers personalizados
  * - Processamento de requisições MCP
  * - Transporte via STDIO e HTTP
@@ -12,7 +12,6 @@
 import {
   // Core MCP
   PostgresMCPServer,
-  MCPServerOptions,
   IMCPHandler,
   
   // Modelos
@@ -24,9 +23,7 @@ import {
   
   // Serviços
   QueryService,
-  TableService,
   SchemaService,
-  TransactionService,
   
   // Utilidades
   createComponentLogger
@@ -55,9 +52,8 @@ class ListTablesHandler implements IMCPHandler {
       logger.info(`Listando tabelas para schema: ${schemaName}`, { includeSystem });
       
       // Usa o SchemaService para listar tabelas
-      const tables = await this.schemaService.listTables({
-        schemaName,
-        includeSystem
+      const tables = await this.schemaService.listTables(schemaName, {
+        includeViews: true
       });
       
       // Retorna a resposta
@@ -67,7 +63,7 @@ class ListTablesHandler implements IMCPHandler {
         request.requestId
       );
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Erro ao listar tabelas: ${error.message}`, { stack: error.stack });
       return MCPResponse.error(
         `Erro ao listar tabelas: ${error.message}`,
@@ -115,11 +111,11 @@ class ExecuteQueryHandler implements IMCPHandler {
       // Retorna a resposta
       return MCPResponse.success(
         result,
-        `Consulta executada com sucesso. ${result.records.length} registro(s) retornado(s).`,
+        `Consulta executada com sucesso. ${(result as any).records?.length || 0} registro(s) retornado(s).`,
         request.requestId
       );
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Erro ao executar consulta: ${error.message}`, { stack: error.stack });
       return MCPResponse.error(
         `Erro ao executar consulta: ${error.message}`,
@@ -173,7 +169,7 @@ class GetTableDetailsHandler implements IMCPHandler {
         request.requestId
       );
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Erro ao obter detalhes da tabela: ${error.message}`, { stack: error.stack });
       return MCPResponse.error(
         `Erro ao obter detalhes da tabela: ${error.message}`,
@@ -226,60 +222,36 @@ async function startMCPServer() {
     // Obtém os serviços necessários
     const schemaService = mcpServer.getService('schema') as SchemaService;
     const queryService = mcpServer.getService('query') as QueryService;
-    const tableService = mcpServer.getService('table') as TableService;
     
     // Registra os handlers
     mcpServer.registerHandler(new ListTablesHandler(schemaService));
     mcpServer.registerHandler(new ExecuteQueryHandler(queryService));
     mcpServer.registerHandler(new GetTableDetailsHandler(schemaService));
     
-    // Eventos do servidor
-    mcpServer.on('start', () => {
-      logger.info('Servidor MCP iniciado e pronto para receber requisições');
-      
-      // No modo STDIO, podemos simular uma requisição para exemplificar
-      if (serverOptions.transport.mode === TransportMode.STDIO) {
-        setTimeout(() => {
-          // Cria uma requisição exemplo para listar tabelas
-          logger.info('Simulando requisição para listar tabelas...');
-          
-          // Estrutura da requisição
-          const requestExample = JSON.stringify({
-            tool: 'mcp_postgres_list_tables',
-            parameters: {
-              schema: 'public',
-              includeSystem: false
-            },
-            requestId: 'req_example_01'
-          });
-          
-          // No modo STDIO, a entrada vem do stdin
-          // Mas ao invés de escrever manualmente, usamos este código para simular
-          process.stdin.emit('data', requestExample);
-        }, 1000);
-      }
-    });
-    
-    mcpServer.on('request', (request) => {
-      logger.info(`Requisição recebida: ${request.tool}`, { requestId: request.requestId });
-    });
-    
-    mcpServer.on('response', (data) => {
-      logger.info(`Resposta enviada para: ${data.request.tool}`, { 
-        requestId: data.request.requestId,
-        success: data.response.success
-      });
-    });
-    
-    mcpServer.on('error', (data) => {
-      logger.error(`Erro no servidor MCP: ${data.error.message}`, { 
-        stack: data.error.stack,
-        requestId: data.request?.requestId
-      });
-    });
-    
     // Inicia o servidor MCP
     await mcpServer.start();
+    
+    // No modo STDIO, podemos simular uma requisição para exemplificar
+    if (serverOptions.transport.mode === TransportMode.STDIO) {
+      setTimeout(() => {
+        // Cria uma requisição exemplo para listar tabelas
+        logger.info('Simulando requisição para listar tabelas...');
+        
+        // Estrutura da requisição
+        const requestExample = JSON.stringify({
+          tool: 'mcp_postgres_list_tables',
+          parameters: {
+            schema: 'public',
+            includeSystem: false
+          },
+          requestId: 'req_example_01'
+        });
+        
+        // No modo STDIO, a entrada vem do stdin
+        // Mas ao invés de escrever manualmente, usamos este código para simular
+        process.stdin.emit('data', requestExample);
+      }, 1000);
+    }
     
     // Registra handlers para interrupção limpa
     process.on('SIGINT', async () => {
@@ -288,7 +260,7 @@ async function startMCPServer() {
         await mcpServer.stop();
         logger.info('Servidor encerrado com sucesso');
         process.exit(0);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Erro ao encerrar servidor: ${error.message}`);
         process.exit(1);
       }
@@ -296,14 +268,14 @@ async function startMCPServer() {
     
     logger.info(`Ferramentas disponíveis: ${mcpServer.getAvailableTools().join(', ')}`);
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Erro ao iniciar servidor MCP: ${error.message}`, { stack: error.stack });
     process.exit(1);
   }
 }
 
 // Iniciar o servidor
-startMCPServer().catch(error => {
+startMCPServer().catch((error: any) => {
   logger.error(`Erro fatal: ${error.message}`, { stack: error.stack });
   process.exit(1);
 }); 

@@ -82,9 +82,41 @@ export {
 export * from './services/MetricsService';
 export * from './services/SecurityService';
 
+// Filters System
+export {
+  FilterParser,
+  FilterParserResult,
+  FilterOperator,
+  SQLParameter,
+  and,
+  or,
+  not,
+  AndFilter,
+  OrFilter,
+  NotFilter,
+  ArrayFilterAdapter,
+  ArrayFilterOptions,
+  JSONBFilterAdapter,
+  JSONBFilterOptions,
+  GeoFilterAdapter,
+  GeoFilterOptions,
+  GeoPoint,
+  GeoBoundingBox,
+  FilterBuilder,
+  FilterBuilderOptions
+} from './filters';
+
 // Utils
 export * from './utils/logger';
 export * from './utils/exceptions';
+
+// Export models
+export * from './models/ViewInfo';
+export * from './models/FunctionInfo';
+
+// Export services
+export * from './services/ViewService';
+export * from './services/FunctionService';
 
 // Default export for easier usage
 import { PostgresMCPServer } from './core/PostgresMCPServer';
