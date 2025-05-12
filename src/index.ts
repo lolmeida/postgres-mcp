@@ -16,6 +16,7 @@ export * from './database/PostgresConnection';
 export * from './database/PostgresConnectionManager';
 export * from './database/PostgresSchemaManager';
 export * from './database/PostgresQueryBuilder';
+export * from './database/PostgresSchemaQueries';
 
 // Interfaces
 export * from './handlers/HandlerBase';
