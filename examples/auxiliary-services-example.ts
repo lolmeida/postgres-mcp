@@ -10,7 +10,6 @@
 
 import {
   PostgresConfigBuilder,
-  PostgresConnection,
   PostgresConnectionManager,
   LoggingService,
   CacheService,
@@ -42,7 +41,7 @@ async function runExample() {
     
     // Create connection and connection manager
     const connectionManager = new PostgresConnectionManager();
-    await connectionManager.addConnection('default', config);
+    await connectionManager.createConnection(config, 'default');
     const connection = connectionManager.getConnection('default');
     
     // Initialize services we'll use in examples
@@ -150,7 +149,10 @@ async function runExample() {
     
     // Subscribe to metric events
     metricsService.subscribe('timing', (metric) => {
-      console.log(`Timing metric: ${metric.category}.${metric.name} - ${metric.duration}ms`);
+      // Type guard to ensure we're dealing with a TimingMetric
+      if ('duration' in metric) {
+        console.log(`Timing metric: ${metric.category}.${metric.name} - ${metric.duration}ms`);
+      }
     });
     
     // Measure operation execution time
@@ -196,7 +198,7 @@ async function runExample() {
     
     // Generate a metrics report
     const report = metricsService.generateReport();
-    console.log('Metrics report generated with data from all categories');
+    console.log('Metrics report timestamp:', report.timestamp);
     
     // Example 4: Using SecurityService
     console.log('\n=== Example 4: SecurityService ===');
@@ -285,7 +287,7 @@ async function runExample() {
       );
       console.log('Permission granted (unexpected)');
     } catch (error) {
-      console.log('Permission denied (expected):', error.message);
+      console.log('Permission denied (expected):', (error as Error).message);
     }
     
     // List all available roles
@@ -293,7 +295,7 @@ async function runExample() {
     console.log(`Available roles (${roles.length}):`, roles.map(r => r.name).join(', '));
     
     // Cleanup
-    await connectionManager.removeConnection('default');
+    await connectionManager.closeConnection('default');
     await cacheService.shutdown();
     await metricsService.shutdown();
     
