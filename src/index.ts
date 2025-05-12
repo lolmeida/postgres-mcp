@@ -7,9 +7,35 @@
 
 // Core
 export * from './core/MCPConfig';
-export * from './core/PostgresMCPServer';
-export * from './core/MCPRouter';
+export { PostgresMCPServer } from './mcp/server/PostgresMCPServer';
+export { MCPServer, MCPServerOptions, ServerEventCallback } from './mcp/server/MCPServer';
+export { MCPRouter, MCPRouterOptions, IMCPHandler } from './mcp/router/MCPRouter';
 export * from './core/types';
+
+// MCP Models
+export { 
+  MCPRequest, 
+  IMCPRequest, 
+  IMCPRequestWithMetadata 
+} from './mcp/models/MCPRequest';
+
+export { 
+  MCPResponse, 
+  IMCPResponse, 
+  IMCPResponseWithMetadata,
+  ResponseStatus 
+} from './mcp/models/MCPResponse';
+
+// MCP Transport
+export { 
+  IMCPTransport,
+  TransportMode,
+  MCPTransportBase,
+  MCPStdioTransport,
+  MCPHttpTransport,
+  HTTPTransportConfig,
+  MCPTransportFactory
+} from './mcp/transport/MCPTransport';
 
 // Database
 export * from './database/PostgresConfig';
@@ -22,49 +48,43 @@ export {
 } from './database/PostgresSchemaManager';
 
 export * from './database/PostgresQueryBuilder';
-export * from './database/PostgresSchemaQueries';
 
-// Interfaces
-export * from './handlers/HandlerBase';
-export * from './services/ServiceBase';
+// Repositories
+export * from './repositories/PostgresRepository';
 export * from './repositories/RepositoryBase';
 
-// Export PostgresRepository but avoid re-exporting TransactionCallback which conflicts with TransactionService
-export {
-  PostgresRepository
-} from './repositories/PostgresRepository';
-
 // Services
-export * from './services/TableService';
+export * from './services/ServiceBase';
+export * from './services/SchemaService';
 export * from './services/QueryService';
 export * from './services/ValidationService';
-export * from './services/SchemaService';
 
-// Export TransactionService but avoid re-exporting TransactionCallback
+export {
+  TableService,
+  TableOperationResult,
+  TableFilterOptions
+} from './services/TableService';
+
 export {
   TransactionService,
-  TransactionInfo,
   IsolationLevel,
-  TransactionStatus
+  TransactionInfo
 } from './services/TransactionService';
 
-// Export other services
+// Auxiliary Services
 export * from './services/LoggingService';
-
-// Export CacheService but avoid re-exporting CacheStats which conflicts
-export {
-  CacheService,
-  CacheOptions,
-  SetOptions
+export { 
+  CacheService, 
+  CacheOptions, 
+  SetOptions,
+  CacheStats
 } from './services/CacheService';
-
 export * from './services/MetricsService';
 export * from './services/SecurityService';
 
 // Utils
-export * from './utils/exceptions';
 export * from './utils/logger';
-export * from './models/ValidationSchemas';
+export * from './utils/exceptions';
 
 // Default export for easier usage
 import { PostgresMCPServer } from './core/PostgresMCPServer';
