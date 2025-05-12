@@ -4,34 +4,41 @@ Este guia fornece instruções passo a passo para começar a usar o PostgreSQL M
 
 ## Pré-requisitos
 
-- Python 3.10 ou superior
+- Node.js 16 ou superior
+- npm ou yarn
 - Acesso a um banco de dados PostgreSQL (local ou remoto)
 - Credenciais de acesso ao PostgreSQL com privilégios adequados
 
 ## Instalação
 
-### Via pip
+### Via npm
 
-Instale o pacote usando pip:
+Instale o pacote usando npm:
 
 ```bash
-pip install postgres-mcp
+npm install mcp-postgres-js
 ```
 
-### Via requirements.txt
+### Via yarn
+
+```bash
+yarn add mcp-postgres-js
+```
+
+### Diretamente do repositório
 
 Você também pode instalar diretamente do repositório:
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/postgres-mcp.git
-cd postgres-mcp
+git clone https://github.com/seu-usuario/mcp-postgres-js.git
+cd mcp-postgres-js
 
 # Instale as dependências
-pip install -r requirements.txt
+npm install
 
 # Execute o servidor MCP
-python -m postgres_mcp
+npm start
 ```
 
 ## Configuração Básica
@@ -53,19 +60,25 @@ DB_PASSWORD=mypassword
 DB_SSL=prefer
 ```
 
+E carregue as variáveis no seu código:
+
+```javascript
+require('dotenv').config();
+```
+
 #### Configuração Programática
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-mcp = PostgresMCP(
-    db_host="localhost",
-    db_port=5432,
-    db_name="mydatabase",
-    db_user="myuser",
-    db_password="mypassword",
-    db_ssl="prefer"  # Opções: disable, allow, prefer, require, verify-ca, verify-full
-)
+const mcp = new PostgresMCPServer({
+  dbHost: 'localhost',
+  dbPort: 5432,
+  dbName: 'mydatabase',
+  dbUser: 'myuser',
+  dbPassword: 'mypassword',
+  dbSsl: 'prefer'  // Opções: disable, allow, prefer, require, verify-ca, verify-full
+});
 ```
 
 ## Modos de Operação
@@ -76,513 +89,591 @@ O PostgreSQL MCP suporta dois modos de operação:
 
 Este modo é ideal para integração com LLMs que usam o protocolo MCP.
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa no modo STDIO (padrão)
-mcp = PostgresMCP()
+// Inicializa no modo STDIO (padrão)
+const mcp = new PostgresMCPServer();
 
-# Inicia o servidor
+// Inicia o servidor
 mcp.start()
+  .then(() => console.log('Servidor MCP iniciado no modo STDIO'))
+  .catch(err => console.error('Erro ao iniciar servidor:', err));
 ```
 
 ### 2. Modo HTTP
 
 O modo HTTP é útil para desenvolvimento, testes e chamadas de API diretas.
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa no modo HTTP
-mcp = PostgresMCP(mode="http", port=8000)
+// Inicializa no modo HTTP
+const mcp = new PostgresMCPServer({
+  mode: 'http',
+  port: 8000
+});
 
-# Inicia o servidor HTTP
+// Inicia o servidor HTTP
 mcp.start()
+  .then(() => console.log('Servidor MCP HTTP iniciado na porta 8000'))
+  .catch(err => console.error('Erro ao iniciar servidor:', err));
 ```
 
 ## Configuração Avançada
 
 ### 1. Configurando Tamanho do Pool de Conexões
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-mcp = PostgresMCP(
-    db_host="localhost",
-    db_port=5432,
-    db_name="mydatabase",
-    db_user="myuser",
-    db_password="mypassword",
-    pool_min_size=5,
-    pool_max_size=20
-)
+const mcp = new PostgresMCPServer({
+  dbHost: 'localhost',
+  dbPort: 5432,
+  dbName: 'mydatabase',
+  dbUser: 'myuser',
+  dbPassword: 'mypassword',
+  poolMinSize: 5,
+  poolMaxSize: 20
+});
 ```
 
 ### 2. Configurando Timeout e Limites
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-mcp = PostgresMCP(
-    db_host="localhost",
-    db_port=5432,
-    db_name="mydatabase",
-    db_user="myuser",
-    db_password="mypassword",
-    command_timeout=60,  # Timeout em segundos para comandos
-    max_query_rows=10000,  # Limite máximo de linhas para consultas
-    transaction_timeout=300  # Timeout em segundos para transações
-)
+const mcp = new PostgresMCPServer({
+  dbHost: 'localhost',
+  dbPort: 5432,
+  dbName: 'mydatabase',
+  dbUser: 'myuser',
+  dbPassword: 'mypassword',
+  commandTimeout: 60,  // Timeout em segundos para comandos
+  maxQueryRows: 10000,  // Limite máximo de linhas para consultas
+  transactionTimeout: 300  // Timeout em segundos para transações
+});
 ```
 
 ### 3. Configurando Logging
 
-```python
-from postgres_mcp import PostgresMCP
-import logging
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
+const winston = require('winston');
 
-# Configurar logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("postgres_mcp.log")
-    ]
-)
+// Configurar logger personalizado
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'postgres_mcp.log' })
+  ]
+});
 
-# Inicializa com configuração de logging personalizada
-mcp = PostgresMCP(
-    db_host="localhost",
-    db_port=5432,
-    db_name="mydatabase",
-    db_user="myuser",
-    db_password="mypassword",
-    log_level="INFO",  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-    log_sql_queries=True  # Log de todas as consultas SQL executadas
-)
+// Inicializa com configuração de logging personalizada
+const mcp = new PostgresMCPServer({
+  dbHost: 'localhost',
+  dbPort: 5432,
+  dbName: 'mydatabase',
+  dbUser: 'myuser',
+  dbPassword: 'mypassword',
+  logLevel: 'info',  // debug, info, warn, error
+  logSqlQueries: true,  // Log de todas as consultas SQL executadas
+  logger: logger  // Instância de logger personalizada
+});
 ```
+
+## Estrutura do Código
+
+O PostgreSQL MCP é organizado em uma arquitetura de camadas bem definida:
+
+### Camada de Conexão e Consultas
+
+- `PostgresConfig`: Configuração do banco de dados PostgreSQL usando o padrão Builder
+- `PostgresConnection`: Gerencia a conexão com o banco de dados e execução de consultas
+- `PostgresConnectionManager`: Administra múltiplas conexões para diferentes bancos
+- `PostgresSchemaManager`: Executa operações relacionadas ao schema do PostgreSQL
+- `PostgresSchemaQueries`: Contém todas as consultas SQL usadas pelo SchemaManager
+- `PostgresQueryBuilder`: Constrói consultas SQL dinâmicas com proteção contra injeção SQL
+
+### Camada de Repositórios
+
+- `RepositoryBase`: Interface base para operações CRUD
+- `PostgresRepository`: Implementação para operações em tabelas no PostgreSQL
+
+### Camada de Serviços (Em desenvolvimento)
+
+- `ServiceBase`: Interface base para todos os serviços
+- Serviços especializados para diferentes operações
+
+### Camada de Handlers (Em desenvolvimento)
+
+- `HandlerBase`: Interface base para handlers de requisições MCP
+- Handlers especializados para cada tipo de operação
 
 ## Exemplos de Uso
 
 ### Listar Schemas Disponíveis
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Executa a ferramenta list_schemas
-response = mcp.handle({
-    "tool": "list_schemas",
-    "parameters": {}
+// Executa a ferramenta list_schemas
+mcp.handle({
+  tool: 'list_schemas',
+  parameters: {}
 })
-
-print(response)
+.then(response => {
+  console.log(response);
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ### Listar Tabelas Disponíveis
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Executa a ferramenta list_tables
-response = mcp.handle({
-    "tool": "list_tables",
-    "parameters": {
-        "schema": "public",
-        "include_views": True
-    }
+// Executa a ferramenta list_tables
+mcp.handle({
+  tool: 'list_tables',
+  parameters: {
+    schema: 'public',
+    includeViews: true
+  }
 })
-
-print(response)
+.then(response => {
+  console.log(response);
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ### Descrever Estrutura de Tabela
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Executa a ferramenta describe_table
-response = mcp.handle({
-    "tool": "describe_table",
-    "parameters": {
-        "table": "users",
-        "schema": "public"
-    }
+// Executa a ferramenta describe_table
+mcp.handle({
+  tool: 'describe_table',
+  parameters: {
+    table: 'users',
+    schema: 'public'
+  }
 })
-
-print(response)
+.then(response => {
+  console.log(response);
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ### Consultar Registros
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Executa a ferramenta read_table
-response = mcp.handle({
-    "tool": "read_table",
-    "parameters": {
-        "table": "users",
-        "schema": "public",
-        "filters": {
-            "is_active": True,
-            "created_at": {
-                "gte": "2023-01-01T00:00:00Z"
-            }
-        },
-        "columns": ["id", "name", "email", "created_at"],
-        "order_by": "created_at",
-        "ascending": False,
-        "limit": 5
-    }
+// Executa a ferramenta read_table
+mcp.handle({
+  tool: 'read_table',
+  parameters: {
+    table: 'users',
+    schema: 'public',
+    filters: {
+      isActive: true,
+      createdAt: {
+        gte: '2023-01-01T00:00:00Z'
+      }
+    },
+    columns: ['id', 'name', 'email', 'createdAt'],
+    orderBy: 'createdAt',
+    ascending: false,
+    limit: 5
+  }
 })
-
-print(response)
+.then(response => {
+  console.log(response);
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ### Criar um Registro
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Executa a ferramenta create_record
-response = mcp.handle({
-    "tool": "create_record",
-    "parameters": {
-        "table": "tasks",
-        "schema": "public",
-        "data": {
-            "title": "Completar documentação",
-            "description": "Finalizar guias de uso do MCP",
-            "status": "pending",
-            "due_date": "2023-08-30",
-            "assigned_to": "user123",
-            "priority": "high"
-        },
-        "returning": ["id", "title", "status"]
-    }
+// Executa a ferramenta create_record
+mcp.handle({
+  tool: 'create_record',
+  parameters: {
+    table: 'tasks',
+    schema: 'public',
+    data: {
+      title: 'Completar documentação',
+      description: 'Finalizar guias de uso do MCP',
+      status: 'pending',
+      dueDate: '2023-08-30',
+      assignedTo: 'user123',
+      priority: 'high'
+    },
+    returning: ['id', 'title', 'status']
+  }
 })
-
-print(response)
+.then(response => {
+  console.log(response);
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ### Atualizar Registros
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Executa a ferramenta update_records
-response = mcp.handle({
-    "tool": "update_records",
-    "parameters": {
-        "table": "tasks",
-        "schema": "public",
-        "filters": {
-            "status": "pending",
-            "due_date": {
-                "lt": "2023-07-01"
-            }
-        },
-        "data": {
-            "status": "overdue",
-            "updated_at": "2023-07-01T00:00:00Z"
-        },
-        "returning": ["id", "title", "status", "due_date"]
-    }
+// Executa a ferramenta update_records
+mcp.handle({
+  tool: 'update_records',
+  parameters: {
+    table: 'tasks',
+    schema: 'public',
+    filters: {
+      status: 'pending',
+      dueDate: {
+        lt: '2023-07-01'
+      }
+    },
+    data: {
+      status: 'overdue',
+      updatedAt: '2023-07-01T00:00:00Z'
+    },
+    returning: ['id', 'title', 'status', 'dueDate']
+  }
 })
-
-print(response)
+.then(response => {
+  console.log(response);
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ### Executar Consulta SQL Personalizada
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Executa a ferramenta execute_query
-response = mcp.handle({
-    "tool": "execute_query",
-    "parameters": {
-        "query": """
-        SELECT 
-            users.name, 
-            COUNT(tasks.id) as task_count 
-        FROM 
-            users 
-        LEFT JOIN 
-            tasks ON users.id = tasks.assigned_to 
-        WHERE 
-            users.is_active = $1 
-        GROUP BY 
-            users.name 
-        HAVING 
-            COUNT(tasks.id) > $2 
-        ORDER BY 
-            task_count DESC
-        """,
-        "params": [True, 5],
-        "read_only": True
-    }
+// Executa a ferramenta execute_query
+mcp.handle({
+  tool: 'execute_query',
+  parameters: {
+    query: """
+    SELECT 
+        users.name, 
+        COUNT(tasks.id) as task_count 
+    FROM 
+        users 
+    LEFT JOIN 
+        tasks ON users.id = tasks.assigned_to 
+    WHERE 
+        users.is_active = $1 
+    GROUP BY 
+        users.name 
+    HAVING 
+        COUNT(tasks.id) > $2 
+    ORDER BY 
+        task_count DESC
+    """,
+    params: [true, 5],
+    read_only: true
+  }
 })
-
-print(response)
+.then(response => {
+  console.log(response);
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ### Usando Transações
 
-```python
-from postgres_mcp import PostgresMCP
+```javascript
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializa o cliente em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializa o cliente em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Inicia uma transação
-tx_response = mcp.handle({
-    "tool": "begin_transaction",
-    "parameters": {
-        "isolation_level": "serializable"
-    }
+// Inicia uma transação
+mcp.handle({
+  tool: 'begin_transaction',
+  parameters: {
+    isolation_level: 'serializable'
+  }
 })
+.then(tx_response => {
+  const transaction_id = tx_response.data.transaction_id;
 
-transaction_id = tx_response["data"]["transaction_id"]
-
-try:
-    # Atualiza um registro dentro da transação
+  try {
+    // Atualiza um registro dentro da transação
     mcp.handle({
-        "tool": "update_records",
-        "parameters": {
-            "table": "accounts",
-            "schema": "public",
-            "filters": {"id": "acc_123"},
-            "data": {"balance": {"decrement": 100.00}},
-            "transaction_id": transaction_id
-        }
-    })
+      tool: 'update_records',
+      parameters: {
+        table: 'accounts',
+        schema: 'public',
+        filters: { id: 'acc_123' },
+        data: { balance: { decrement: 100.00 } },
+        transaction_id: transaction_id
+      }
+    });
     
-    # Cria um registro dentro da mesma transação
+    // Cria um registro dentro da mesma transação
     mcp.handle({
-        "tool": "create_record",
-        "parameters": {
-            "table": "transfers",
-            "schema": "public",
-            "data": {
-                "from_account": "acc_123", 
-                "to_account": "acc_456",
-                "amount": 100.00,
-                "status": "completed"
-            },
-            "transaction_id": transaction_id
-        }
-    })
+      tool: 'create_record',
+      parameters: {
+        table: 'transfers',
+        schema: 'public',
+        data: {
+          from_account: 'acc_123', 
+          to_account: 'acc_456',
+          amount: 100.00,
+          status: 'completed'
+        },
+        transaction_id: transaction_id
+      }
+    });
     
-    # Confirma a transação
+    // Confirma a transação
     mcp.handle({
-        "tool": "commit_transaction",
-        "parameters": {
-            "transaction_id": transaction_id
-        }
-    })
+      tool: 'commit_transaction',
+      parameters: {
+        transaction_id: transaction_id
+      }
+    });
     
-except Exception as e:
-    # Em caso de erro, reverte a transação
+  } catch (e) {
+    // Em caso de erro, reverte a transação
     mcp.handle({
-        "tool": "rollback_transaction",
-        "parameters": {
-            "transaction_id": transaction_id
-        }
-    })
-    print(f"Erro: {str(e)}")
+      tool: 'rollback_transaction',
+      parameters: {
+        transaction_id: transaction_id
+      }
+    });
+    console.error(`Erro: ${e.message}`);
+  }
+})
+.catch(err => {
+  console.error('Erro:', err);
+});
 ```
 
 ## Integração com LLMs
 
 ### Exemplo com Anthropic (Claude)
 
-```python
-import anthropic
-from postgres_mcp import PostgresMCP
+```javascript
+import anthropic from 'anthropic';
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializar o cliente MCP em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializar o cliente MCP em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Inicializar cliente Claude
-client = anthropic.Anthropic(api_key="your-api-key")
+// Inicializar cliente Claude
+const client = new anthropic.Anthropic({ apiKey: 'your-api-key' });
 
-# Preparar ferramentas para Claude
-tools = [
-    {
-        "name": "list_tables",
-        "description": "Lista todas as tabelas disponíveis no banco de dados PostgreSQL",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "schema": {"type": "string", "description": "Nome do schema (default: public)"},
-                "include_views": {"type": "boolean", "description": "Incluir views nos resultados"}
-            }
-        }
-    },
-    {
-        "name": "read_table",
-        "description": "Consulta registros de uma tabela PostgreSQL",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "table": {"type": "string", "description": "Nome da tabela"},
-                "schema": {"type": "string", "description": "Nome do schema (default: public)"},
-                "filters": {"type": "object", "description": "Filtros da consulta"},
-                "columns": {"type": "array", "description": "Colunas específicas a retornar"},
-                "limit": {"type": "number", "description": "Limite de registros a retornar"}
-            },
-            "required": ["table"]
-        }
-    },
-    {
-        "name": "execute_query",
-        "description": "Executa uma consulta SQL personalizada",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "Consulta SQL a executar"},
-                "params": {"type": "array", "description": "Parâmetros para a consulta"},
-                "read_only": {"type": "boolean", "description": "Se a consulta é somente leitura"}
-            },
-            "required": ["query"]
-        }
+// Preparar ferramentas para Claude
+const tools = [
+  {
+    name: 'list_tables',
+    description: 'Lista todas as tabelas disponíveis no banco de dados PostgreSQL',
+    input_schema: {
+      type: 'object',
+      properties: {
+        schema: { type: 'string', description: 'Nome do schema (default: public)' },
+        include_views: { type: 'boolean', description: 'Incluir views nos resultados' }
+      }
     }
-]
+  },
+  {
+    name: 'read_table',
+    description: 'Consulta registros de uma tabela PostgreSQL',
+    input_schema: {
+      type: 'object',
+      properties: {
+        table: { type: 'string', description: 'Nome da tabela' },
+        schema: { type: 'string', description: 'Nome do schema (default: public)' },
+        filters: { type: 'object', description: 'Filtros da consulta' },
+        columns: { type: 'array', description: 'Colunas específicas a retornar' },
+        limit: { type: 'number', description: 'Limite de registros a retornar' }
+      },
+      required: ['table']
+    }
+  },
+  {
+    name: 'execute_query',
+    description: 'Executa uma consulta SQL personalizada',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Consulta SQL a executar' },
+        params: { type: 'array', description: 'Parâmetros para a consulta' },
+        read_only: { type: 'boolean', description: 'Se a consulta é somente leitura' }
+      },
+      required: ['query']
+    }
+  }
+];
 
-# Função para processar chamadas de ferramenta
-def process_tool_call(tool_call):
-    tool_name = tool_call["name"]
-    parameters = tool_call["parameters"]
-    
-    # Processar a chamada através do MCP
-    result = mcp.handle({
-        "tool": tool_name,
-        "parameters": parameters
-    })
-    
-    return result
+// Função para processar chamadas de ferramenta
+const process_tool_call = async (tool_call) => {
+  const tool_name = tool_call.name;
+  const parameters = tool_call.parameters;
+  
+  // Processar a chamada através do MCP
+  const result = await mcp.handle({
+    tool: tool_name,
+    parameters: parameters
+  });
+  
+  return result;
+};
 
-# Exemplo de uso com Claude
-message = client.messages.create(
-    model="claude-3-opus-20240229",
-    max_tokens=1000,
-    temperature=0,
-    tools=tools,
-    messages=[
-        {"role": "user", "content": "Liste todas as tabelas no schema public e depois mostre os 5 usuários mais recentes."}
-    ]
-)
+// Exemplo de uso com Claude
+const message = await client.messages.create(
+  model: 'claude-3-opus-20240229',
+  max_tokens: 1000,
+  temperature: 0,
+  tools: tools,
+  messages: [
+    { role: 'user', content: 'Liste todas as tabelas no schema public e depois mostre os 5 usuários mais recentes.' }
+  ]
+);
 
-# Processar e responder às chamadas de ferramentas de Claude
-for tool_call in message.content:
-    if hasattr(tool_call, "tool_use"):
-        tool_result = process_tool_call(tool_call.tool_use)
-        # Enviar resultado de volta para o LLM
-        # ...
+// Processar e responder às chamadas de ferramentas de Claude
+for (const tool_call of message.content) {
+  if (tool_call.tool_use) {
+    const tool_result = await process_tool_call(tool_call.tool_use);
+    // Enviar resultado de volta para o LLM
+    // ...
+  }
+}
 ```
 
 ### Exemplo com OpenAI (GPT)
 
-```python
-import openai
-from postgres_mcp import PostgresMCP
+```javascript
+import openai from 'openai';
+const { PostgresMCPServer } = require('mcp-postgres-js');
 
-# Inicializar o cliente MCP em modo teste
-mcp = PostgresMCP(test_mode=True)
+// Inicializar o cliente MCP em modo teste
+const mcp = new PostgresMCPServer({ testMode: true });
 
-# Configurar OpenAI
-openai.api_key = "your-api-key"
+// Configurar OpenAI
+const openai_client = new openai.OpenAI({ apiKey: 'your-api-key' });
 
-# Preparar as ferramentas para OpenAI
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "list_tables",
-            "description": "Lista todas as tabelas disponíveis no banco de dados PostgreSQL",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "schema": {"type": "string", "description": "Nome do schema (default: public)"},
-                    "include_views": {"type": "boolean", "description": "Incluir views nos resultados"}
-                },
-                "required": []
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_table",
-            "description": "Consulta registros de uma tabela PostgreSQL",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "table": {"type": "string", "description": "Nome da tabela"},
-                    "schema": {"type": "string", "description": "Nome do schema (default: public)"},
-                    "filters": {"type": "object", "description": "Filtros da consulta"},
-                    "columns": {"type": "array", "items": {"type": "string"}, "description": "Colunas específicas a retornar"},
-                    "limit": {"type": "number", "description": "Limite de registros a retornar"}
-                },
-                "required": ["table"]
-            }
-        }
+// Preparar as ferramentas para OpenAI
+const tools = [
+  {
+    type: 'function',
+    function: {
+      name: 'list_tables',
+      description: 'Lista todas as tabelas disponíveis no banco de dados PostgreSQL',
+      parameters: {
+        type: 'object',
+        properties: {
+          schema: { type: 'string', description: 'Nome do schema (default: public)' },
+          include_views: { type: 'boolean', description: 'Incluir views nos resultados' },
+        },
+        required: []
+      }
     }
-]
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'read_table',
+      description: 'Consulta registros de uma tabela PostgreSQL',
+      parameters: {
+        type: 'object',
+        properties: {
+          table: { type: 'string', description: 'Nome da tabela' },
+          schema: { type: 'string', description: 'Nome do schema (default: public)' },
+          filters: { type: 'object', description: 'Filtros da consulta' },
+          columns: { type: 'array', items: { type: 'string' }, description: 'Colunas específicas a retornar' },
+          limit: { type: 'number', description: 'Limite de registros a retornar' }
+        },
+        required: ['table']
+      }
+    }
+  }
+];
 
-# Função para processar chamadas de ferramenta
-def process_tool_call(tool_call):
-    function_name = tool_call.function.name
-    arguments = json.loads(tool_call.function.arguments)
-    
-    # Processar a chamada através do MCP
-    result = mcp.handle({
-        "tool": function_name,
-        "parameters": arguments
-    })
-    
-    return result
+// Função para processar chamadas de ferramenta
+const process_tool_call = async (tool_call) => {
+  const function_name = tool_call.name;
+  const arguments = JSON.parse(tool_call.arguments);
+  
+  // Processar a chamada através do MCP
+  const result = await mcp.handle({
+    tool: function_name,
+    parameters: arguments
+  });
+  
+  return result;
+};
 
-# Exemplo de uso com GPT
-response = openai.ChatCompletion.create(
-    model="gpt-4",
-    messages=[
-        {"role": "user", "content": "Liste todas as tabelas no banco de dados e depois mostre os 5 usuários mais recentes."}
-    ],
-    tools=tools,
-    tool_choice="auto"
-)
+// Exemplo de uso com GPT
+const response = await openai_client.chat.completions.create({
+  model: 'gpt-4',
+  messages: [
+    { role: 'user', content: 'Liste todas as tabelas no banco de dados e depois mostre os 5 usuários mais recentes.' }
+  ],
+  tools: tools,
+  tool_choice: 'auto'
+});
 
-# Processar e responder às chamadas de ferramentas
-message = response.choices[0].message
-if message.tool_calls:
-    for tool_call in message.tool_calls:
-        tool_result = process_tool_call(tool_call)
-        # Enviar resultado de volta para o LLM
-        # ...
+// Processar e responder às chamadas de ferramentas
+const message = response.choices[0].message;
+if (message.tool_calls) {
+  for (const tool_call of message.tool_calls) {
+    const tool_result = await process_tool_call(tool_call);
+    // Enviar resultado de volta para o LLM
+    // ...
+  }
+}
 ```
 
 ## Próximos Passos

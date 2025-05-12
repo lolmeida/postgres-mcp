@@ -1,12 +1,12 @@
-# PostgreSQL MCP - Arquitetura
+# PostgreSQL MCP (JavaScript) - Arquitetura
 
-## Visão Geral da Arquitetura
+## Visão Geral da Arquitetura Planejada
 
-O PostgreSQL MCP é construído como uma arquitetura modular em camadas, seguindo princípios de design limpo e separação de responsabilidades. Esta arquitetura permite extensibilidade, testabilidade e manutenção simplificada.
+O PostgreSQL MCP para JavaScript será construído como uma arquitetura modular em camadas, seguindo princípios de design limpo e separação de responsabilidades. Esta arquitetura permitirá extensibilidade, testabilidade e manutenção simplificada.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  Interface MCP (FastMCP)                    │
+│                  Interface MCP (MCP-Core)                    │
 └───────────────────────────┬─────────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────────┐
@@ -31,38 +31,33 @@ O PostgreSQL MCP é construído como uma arquitetura modular em camadas, seguind
 
 ## Status Atual da Implementação
 
-A implementação atual (versão 0.1.0) do PostgreSQL MCP concluiu com sucesso a arquitetura central e as funcionalidades principais. Todos os componentes essenciais nas camadas de Interface MCP, Handlers, Serviços e Repositório estão implementados e operacionais.
+A implementação atual (versão 0.1.0) do PostgreSQL MCP para JavaScript está em fase inicial de desenvolvimento. Estamos começando pela definição da arquitetura e planejamento das funcionalidades.
 
-### Componentes Implementados:
-- **Interface MCP**: Implementação completa de MCPServer e MCPRouter com suporte a STDIO e HTTP
-- **Handlers**: Todos os handlers principais foram implementados, incluindo operações de esquema, CRUD e transações
-- **Serviços**: Implementação completa de TableService, SchemaService, QueryService, TransactionService, CacheService e MetricsService
-- **Repositório**: Implementação completa de PostgresRepository com suporte a todas as operações básicas e avançadas
+### Componentes a Serem Implementados:
+- **Interface MCP**: Implementação de MCPServer e MCPRouter com suporte a STDIO e HTTP
+- **Handlers**: Desenvolvimento de handlers para operações de esquema, CRUD e transações
+- **Serviços**: Implementação de TableService, SchemaService, QueryService, TransactionService, CacheService e MetricsService
+- **Repositório**: Implementação de PostgresRepository com suporte a todas as operações básicas e avançadas
 - **Filtros**: Sistema de filtros robusto para consultas avançadas
 
-### Componentes em Desenvolvimento:
-- Suporte a tipos de dados específicos do PostgreSQL (arrays, JSON/JSONB)
-- Testes abrangentes
-- Otimizações de desempenho e cache
-- Documentação expandida
-
-## Componentes Principais
+## Componentes Principais Planejados
 
 ### 1. Interface MCP
 
-**Responsabilidade**: Fornece um endpoint compatível com MCP para receber e responder a solicitações de ferramentas.
+**Responsabilidade**: Fornecerá um endpoint compatível com MCP para receber e responder a solicitações de ferramentas.
 
 **Componentes**:
-- `MCPServer`: Abstração do servidor MCP que suporta diferentes modos de transporte
-- `MCPRouter`: Gerencia o roteamento de solicitações para os handlers apropriados
-- `MCPResponse`: Formata respostas no padrão MCP
+- `MCPServer`: Abstração do servidor MCP que suportará diferentes modos de transporte
+- `MCPRouter`: Gerenciará o roteamento de solicitações para os handlers apropriados
+- `MCPResponse`: Formatará respostas no padrão MCP
 
 **Tecnologias**:
-- FastMCP para implementação do protocolo MCP
+- MCP-Core para implementação do protocolo MCP
+- Express.js para API HTTP
 
 ### 2. Camada de Handlers
 
-**Responsabilidade**: Processa requisições específicas das ferramentas, valida parâmetros e orquestra os serviços.
+**Responsabilidade**: Processará requisições específicas das ferramentas, validará parâmetros e orquestrará os serviços.
 
 **Componentes**:
 - `HandlerBase`: Classe base abstrata para todos os handlers
@@ -85,17 +80,17 @@ A implementação atual (versão 0.1.0) do PostgreSQL MCP concluiu com sucesso a
 
 ### 3. Camada de Serviços
 
-**Responsabilidade**: Implementa a lógica de negócios e orquestra operações entre repositórios.
+**Responsabilidade**: Implementará a lógica de negócios e orquestrará operações entre repositórios.
 
 **Componentes**:
-- `TableService`: Gerencia operações nas tabelas
-- `QueryService`: Constrói e otimiza consultas
-- `ValidationService`: Valida dados antes de operações
-- `SecurityService`: Gerencia aspectos de segurança e permissões
-- `TransactionService`: Gerencia transações do PostgreSQL
-- `SchemaService`: Gerencia operações relacionadas a schemas (específico do PostgreSQL)
-- `CacheService`: Gerencia cache de consultas e metadados
-- `MetricsService`: Monitora e analisa métricas de desempenho do sistema
+- `TableService`: Gerenciará operações nas tabelas
+- `QueryService`: Construirá e otimizará consultas
+- `ValidationService`: Validará dados antes de operações
+- `SecurityService`: Gerenciará aspectos de segurança e permissões
+- `TransactionService`: Gerenciará transações do PostgreSQL
+- `SchemaService`: Gerenciará operações relacionadas a schemas (específico do PostgreSQL)
+- `CacheService`: Gerenciará cache de consultas e metadados com Node-cache
+- `MetricsService`: Monitorará e analisará métricas de desempenho do sistema
 
 **Padrões**:
 - Serviços stateless
@@ -104,13 +99,13 @@ A implementação atual (versão 0.1.0) do PostgreSQL MCP concluiu com sucesso a
 
 ### 4. Camada de Repositório
 
-**Responsabilidade**: Abstrai acesso a dados e operações no PostgreSQL.
+**Responsabilidade**: Abstrairá acesso a dados e operações no PostgreSQL.
 
 **Componentes**:
 - `RepositoryBase`: Interface base para operações CRUD
 - `TableRepository`: Implementação específica para tabelas do PostgreSQL
 - `QueryBuilder`: Construtor de consultas para o PostgreSQL
-- `SchemaRepository`: Manipula operações de schema (específico do PostgreSQL)
+- `SchemaRepository`: Manipulará operações de schema (específico do PostgreSQL)
 
 **Padrões**:
 - Repository Pattern
@@ -119,18 +114,21 @@ A implementação atual (versão 0.1.0) do PostgreSQL MCP concluiu com sucesso a
 
 ### 5. PostgreSQL Driver
 
-**Responsabilidade**: Camada fina que encapsula a comunicação direta com o banco de dados PostgreSQL.
+**Responsabilidade**: Camada fina que encapsulará a comunicação direta com o banco de dados PostgreSQL.
 
 **Componentes**:
-- `PostgreSQLClient`: Wrapper em torno da biblioteca psycopg ou asyncpg
-- `ConnectionManager`: Gerencia pool de conexões para otimização
-- `TransactionManager`: Controla transações e savepoints
+- `PostgreSQLClient`: Wrapper em torno da biblioteca node-postgres (pg)
+- `ConnectionManager`: Gerenciará pool de conexões para otimização
+- `TransactionManager`: Controlará transações e savepoints
+- `PostgresSchemaManager`: Gerencia operações relacionadas ao schema do PostgreSQL
+- `PostgresSchemaQueries`: Armazena todas as consultas SQL usadas pelo PostgresSchemaManager
+- `PostgresQueryBuilder`: Construtor de consultas SQL para operações dinâmicas
 
 **Tecnologias**:
-- Biblioteca asyncpg para comunicação assíncrona com PostgreSQL
+- Biblioteca node-postgres (pg) para comunicação com PostgreSQL
 - Sistema de retry e circuit breaker para resiliência
 
-## Modelos de Dados
+## Modelos de Dados Planejados
 
 ### Modelos de Requisição
 
@@ -169,47 +167,47 @@ ResponseBase
        └─ QueryErrorResponse
 ```
 
-## Fluxos de Dados
+## Fluxos de Dados Planejados
 
 ### Fluxo de Leitura (Read)
 
-1. Requisição MCP chega ao `MCPServer`
-2. `MCPRouter` roteia para `ReadTableHandler`
-3. Handler valida parâmetros usando modelos Pydantic
-4. `QueryService` constrói a consulta SQL otimizada
-5. `TableRepository` executa a consulta via driver PostgreSQL
-6. Resultados são transformados em `DataResponse`
-7. Resposta é formatada e retornada ao cliente
+1. Requisição MCP chegará ao `MCPServer`
+2. `MCPRouter` roteará para `ReadTableHandler`
+3. Handler validará parâmetros usando modelos Joi/Zod
+4. `QueryService` construirá a consulta SQL otimizada
+5. `TableRepository` executará a consulta via driver PostgreSQL
+6. Resultados serão transformados em `DataResponse`
+7. Resposta será formatada e retornada ao cliente
 
 ### Fluxo de Escrita (Create/Update/Delete)
 
-1. Requisição MCP chega ao `MCPServer`
-2. `MCPRouter` roteia para o handler específico
-3. Handler valida parâmetros usando modelos Pydantic
-4. `ValidationService` valida a integridade dos dados
-5. `SecurityService` verifica permissões (se configurado)
-6. `TransactionService` inicia uma transação se necessário
-7. `TableRepository` executa a operação via driver PostgreSQL
-8. Transação é confirmada (commit) ou revertida (rollback) baseado no resultado
-9. Resultados são transformados em resposta apropriada
-10. Resposta é formatada e retornada ao cliente
+1. Requisição MCP chegará ao `MCPServer`
+2. `MCPRouter` roteará para o handler específico
+3. Handler validará parâmetros usando modelos Joi/Zod
+4. `ValidationService` validará a integridade dos dados
+5. `SecurityService` verificará permissões (se configurado)
+6. `TransactionService` iniciará uma transação se necessário
+7. `TableRepository` executará a operação via driver PostgreSQL
+8. Transação será confirmada (commit) ou revertida (rollback) baseado no resultado
+9. Resultados serão transformados em resposta apropriada
+10. Resposta será formatada e retornada ao cliente
 
 ### Fluxo de Consulta Personalizada (Execute Query)
 
-1. Requisição MCP chega ao `MCPServer`
-2. `MCPRouter` roteia para `ExecuteQueryHandler`
-3. Handler valida parâmetros e consulta SQL
-4. `SecurityService` verifica permissões para execute_query
-5. `ValidationService` sanitiza a consulta SQL para segurança
-6. `QueryService` executa a consulta diretamente via driver PostgreSQL
-7. Resultados são transformados em `DataResponse`
-8. Resposta é formatada e retornada ao cliente
+1. Requisição MCP chegará ao `MCPServer`
+2. `MCPRouter` roteará para `ExecuteQueryHandler`
+3. Handler validará parâmetros e consulta SQL
+4. `SecurityService` verificará permissões para execute_query
+5. `ValidationService` sanitizará a consulta SQL para segurança
+6. `QueryService` executará a consulta diretamente via driver PostgreSQL
+7. Resultados serão transformados em `DataResponse`
+8. Resposta será formatada e retornada ao cliente
 
-## Recursos PostgreSQL Específicos
+## Recursos PostgreSQL Específicos a Serem Implementados
 
 ### 1. Suporte a Múltiplos Schemas
 
-O PostgreSQL MCP suporta operações em múltiplos schemas, permitindo:
+O PostgreSQL MCP suportará operações em múltiplos schemas, permitindo:
 - Listagem de schemas disponíveis
 - Especificação de schema em operações de tabela
 - Controle de acesso por schema
@@ -239,15 +237,15 @@ Acesso a recursos específicos do PostgreSQL:
 - Consultas com Common Table Expressions (CTEs)
 - Window Functions
 
-## Estratégias de Resiliência
+## Estratégias de Resiliência Planejadas
 
 1. **Retry com Backoff Exponencial**
    - Tentativas automáticas para falhas transitórias
-   - Tempo de espera aumenta exponencialmente entre tentativas
+   - Tempo de espera aumentará exponencialmente entre tentativas
 
 2. **Circuit Breaker**
-   - Evita sobrecarga em caso de falhas persistentes
-   - Falha rápido quando o sistema subjacente está comprometido
+   - Evitará sobrecarga em caso de falhas persistentes
+   - Falha rápido quando o sistema subjacente estiver comprometido
 
 3. **Pool de Conexões**
    - Gerenciamento eficiente de conexões ao PostgreSQL
@@ -255,18 +253,18 @@ Acesso a recursos específicos do PostgreSQL:
    - Keepalive para evitar conexões inativas
 
 4. **Cache**
-   - Implementado através do CacheService dedicado
+   - A ser implementado através do CacheService dedicado
    - Armazenamento em cache de:
      - Resultados de consultas (tabelas e SQL personalizadas)
      - Metadados de tabelas e schemas
    - Estratégia TTL (Time to Live) configurável
    - Mecanismos de invalidação automática em operações de escrita
 
-## Sistema de Métricas
+## Sistema de Métricas Planejado
 
 ### Arquitetura do MetricsService
 
-O MetricsService é um componente central para monitoramento e diagnóstico de desempenho em todo o sistema PostgreSQL MCP. Foi projetado para coletar, armazenar e analisar métricas de desempenho sem impacto significativo na performance do sistema principal.
+O MetricsService será um componente central para monitoramento e diagnóstico de desempenho em todo o sistema PostgreSQL MCP. Será projetado para coletar, armazenar e analisar métricas de desempenho sem impacto significativo na performance do sistema principal.
 
 #### Componentes do Sistema de Métricas:
 
@@ -291,7 +289,7 @@ O MetricsService é um componente central para monitoramento e diagnóstico de d
    - Cálculo de taxas de erro e throughput
 
 5. **Monitoramento de Recursos**
-   - Integração com `psutil` para métricas do sistema operacional
+   - Integração com bibliotecas para métricas do sistema operacional
    - Monitoramento do pool de conexões PostgreSQL
    - Monitoramento do uso de cache
 
@@ -311,7 +309,7 @@ O MetricsService é um componente central para monitoramento e diagnóstico de d
 - **Planejamento de Capacidade**: Dados para prever necessidades futuras
 - **Monitoramento de Saúde**: Visibilidade em tempo real da saúde do sistema
 
-O MetricsService é integrado com outros componentes do sistema através de injeção de dependência, permitindo uma instrumentação não-intrusiva e desacoplada da lógica de negócios principal.
+O MetricsService será integrado com outros componentes do sistema através de injeção de dependência, permitindo uma instrumentação não-intrusiva e desacoplada da lógica de negócios principal.
 
 ## Considerações sobre Segurança
 
@@ -323,7 +321,7 @@ O MetricsService é integrado com outros componentes do sistema através de inje
 2. **Validação de Entrada**
    - Validação rigorosa para prevenir injeção SQL
    - Parametrização de todas as consultas
-   - Pydantic para validação de esquema
+   - Joi/Zod para validação de esquema
 
 3. **Política de Permissões**
    - Integração com modelo de permissões do PostgreSQL (roles e grants)
@@ -340,35 +338,21 @@ O MetricsService é integrado com outros componentes do sistema através de inje
    - Sem dados sensíveis em logs
    - Integração opcional com funcionalidades de auditoria do PostgreSQL
 
-## Testes
+## Plano de Testes
 
-A estratégia de testes do PostgreSQL MCP é abrangente, cobrindo múltiplos níveis:
+A estratégia de testes do PostgreSQL MCP será abrangente, cobrindo múltiplos níveis:
 
 ### Testes Unitários
 
-* **Testes de Serviços**: Verificam a lógica de negócio isoladamente
-* **Testes de Handlers**: Verificam o processamento de requisições
-* **Testes de Modelos**: Asseguram a correta validação e comportamento dos modelos de dados
-* **Testes de Filtros**: Validam a conversão correta dos modelos de filtro para SQL
-* **Testes do QueryBuilder**: Verificam a geração adequada de consultas SQL com filtros complexos
+* **Testes de Serviços**: Verificarão a lógica de negócio isoladamente
+* **Testes de Handlers**: Verificarão o processamento de requisições
+* **Testes de Modelos**: Assegurarão a correta validação e comportamento dos modelos de dados
+* **Testes de Filtros**: Validarão a conversão correta dos modelos de filtro para SQL
+* **Testes do QueryBuilder**: Verificarão a geração adequada de consultas SQL com filtros complexos
 
-### Testes Independentes
+### Testes de Integração
 
-Um conjunto de testes standalone foi implementado no diretório `standalone_tests/` para testar componentes críticos de forma independente:
-
-* **test_standalone_filters.py**: Testes abrangentes para todos os modelos de filtro
-* **test_standalone_query_builder.py**: Testes para o QueryBuilder com filtros simples
-* **test_integrated.py**: Testes integrados para verificar a interação entre filtros e QueryBuilder
-
-Esses testes validam:
-* A correta implementação de todos os tipos de filtro
-* A construção adequada de consultas SQL com filtros variados
-* O tratamento de palavras-chave reservadas como 'in' e 'is'
-* O suporte a múltiplos operadores para o mesmo campo
-
-### Testes de Integração (Planejados)
-
-* **Testes com PostgreSQL Real**: Usando Testcontainers para criar bancos de teste
+* **Testes com PostgreSQL Real**: Usando Docker para criar bancos de teste
 * **Testes End-to-End**: Simulando o fluxo completo de requisições MCP
 
 ### Ambiente de Testes
@@ -379,16 +363,16 @@ Esses testes validam:
 
 ## Extensibilidade
 
-A arquitetura do PostgreSQL MCP foi projetada para ser extensível:
+A arquitetura do PostgreSQL MCP será projetada para ser extensível:
 
-* **Handlers Plugáveis**: Novos handlers podem ser adicionados facilmente
-* **Serviços Modulares**: Serviços podem ser estendidos ou substituídos
-* **Filtros Customizáveis**: O sistema de filtros pode ser estendido para novos tipos ou operadores
-* **Transporte Flexível**: Novos modos de transporte podem ser adicionados (gRPC, WebSockets, etc.)
+* **Handlers Plugáveis**: Novos handlers poderão ser adicionados facilmente
+* **Serviços Modulares**: Serviços poderão ser estendidos ou substituídos
+* **Filtros Customizáveis**: O sistema de filtros poderá ser estendido para novos tipos ou operadores
+* **Transporte Flexível**: Novos modos de transporte poderão ser adicionados (gRPC, WebSockets, etc.)
 
 ## Configuração e Deployment
 
-O PostgreSQL MCP suporta várias opções de configuração e deployment:
+O PostgreSQL MCP suportará várias opções de configuração e deployment:
 
 * **Variáveis de Ambiente**: Configuração via variáveis de ambiente
 * **Arquivo de Configuração**: Configuração via arquivo JSON/YAML

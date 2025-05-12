@@ -811,3 +811,25 @@ O PostgreSQL MCP suporta os seguintes níveis de isolamento para transações:
 - Use transações para operações que requerem consistência
 - Para consultas complexas, considere o uso de `execute_query` com parâmetros apropriados
 - Aproveite os recursos específicos do PostgreSQL como JSONB e arrays quando apropriado
+
+## Componentes Internos
+
+### PostgresConnection
+
+Interface de conexão com o banco de dados PostgreSQL, fornecendo métodos para executar consultas e gerenciar transações.
+
+### PostgresConnectionManager
+
+Gerencia múltiplas conexões com bancos de dados PostgreSQL, permitindo o uso de diferentes conexões para diferentes propósitos.
+
+### PostgresSchemaManager
+
+Responsável por operações relacionadas ao schema do PostgreSQL, como listagem de tabelas, colunas e restrições.
+
+### PostgresSchemaQueries
+
+Armazena todas as consultas SQL utilizadas pelo PostgresSchemaManager. Esta separação facilita a manutenção e organização do código, melhorando a legibilidade e permitindo uma melhor otimização das consultas.
+
+### PostgresQueryBuilder
+
+Construtor de consultas SQL que permite criar consultas dinâmicas de forma segura e com proteção contra injeção SQL.
